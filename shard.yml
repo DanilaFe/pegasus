@@ -1,0 +1,9 @@
+name: pegasus
+version: 0.1.0
+
+authors:
+  - Danila Fedorin <danila.fedorin@gmail.com>
+
+crystal: 0.26.1
+
+license: MIT

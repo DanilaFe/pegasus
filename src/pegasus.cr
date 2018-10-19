@@ -9,8 +9,3 @@ module Pegasus
 
   # TODO: Put your code here
 end
-
-nfa = Pegasus::Nfa::Nfa.new "hey+"
-# puts nfa.to_dot
-almost_dfa = nfa.almost_dfa (('a'..'z').to_a)
-puts almost_dfa.to_dot

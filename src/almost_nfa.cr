@@ -16,12 +16,6 @@ module Pegasus
       end
     end
     class Nfa
-      def initialize
-        @last_id = 0_i64
-        @states = Set(State).new
-        @start = nil
-      end
-
       def find_lambda_states(s : State)
         found = Set(State).new
         queued = Set{s}

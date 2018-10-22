@@ -7,10 +7,10 @@ module Pegasus
       end
     end
 
-    class CharTransition < Transition
-      getter char : Char
+    class ByteTransition < Transition
+      getter byte : UInt8
 
-      def initialize(@char, @other)
+      def initialize(@byte, @other)
       end
     end
 

@@ -8,9 +8,9 @@ module Pegasus
       end
     end
 
-    class CharTransition
+    class ByteTransition
       def label
-        "#{@char}"
+          "#{@byte.chr}"
       end
     end
 

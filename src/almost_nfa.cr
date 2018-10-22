@@ -2,17 +2,17 @@ module Pegasus
   module Nfa
     class Transition
       def char_states
-        return {} of Char => Set(State)
+        return {} of UInt8 => Set(State)
       end
     end
-    class CharTransition
+    class ByteTransition
       def char_states
-        return { @char => Set{@other} }
+        return { @byte => Set{@other} }
       end
     end
     class AnyTransition
       def char_states
-          return Hash.zip((0..255).to_a.map &.chr, Array.new(256, Set{@other}))
+          return Hash.zip((0..255).to_a.map &.to_u8, Array.new(256, Set{@other}))
       end
     end
     class Nfa
@@ -79,7 +79,7 @@ module Pegasus
           out_transitions.each do |char, ss|
             out_state_set = find_lambda_states(ss)
             out_state = get_state_for_set(new_nfa, states, out_state_set)
-            current_state.transitions << CharTransition.new(char, out_state)
+            current_state.transitions << ByteTransition.new(char, out_state)
             queue << out_state_set
           end
         end

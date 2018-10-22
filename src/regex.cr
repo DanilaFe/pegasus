@@ -109,9 +109,11 @@ module Pegasus
               char = tokens.delete_at(0)
             end
 
+            raise "Non-ASCII characters not supported" unless char.try &.ascii?
+
             empty_state = state(final: false)
             actual_state = state(final: false)
-            empty_state.transitions << CharTransition.new(char.not_nil!, actual_state)
+            empty_state.transitions << ByteTransition.new(char.not_nil!.bytes[0], actual_state)
             sub_chain = StateChain.new(empty_state, actual_state)
           end
         end

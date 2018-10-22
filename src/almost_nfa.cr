@@ -1,18 +1,18 @@
 module Pegasus
   module Nfa
     class Transition
-      def char_states(alphabet)
+      def char_states
         return {} of Char => Set(State)
       end
     end
     class CharTransition
-      def char_states(alphabet)
+      def char_states
         return { @char => Set{@other} }
       end
     end
     class AnyTransition
-      def char_states(alphabet)
-        return Hash.zip(alphabet, Array.new(alphabet.size, Set{@other}))
+      def char_states
+          return Hash.zip((0..255).to_a.map &.chr, Array.new(256, Set{@other}))
       end
     end
     class Nfa
@@ -51,7 +51,7 @@ module Pegasus
         end
       end
 
-      def almost_dfa(alphabet)
+      def almost_dfa
         raise "NFA doesn't have start state" unless @start
 
         # NFA (almost DFA) we're constructing
@@ -75,7 +75,7 @@ module Pegasus
           finished << state_set
           current_state = get_state_for_set(new_nfa, states, state_set)
 
-          out_transitions = merge_hashes(state_set.map { |s| merge_hashes(s.transitions.map(&.char_states alphabet)) })
+          out_transitions = merge_hashes(state_set.map { |s| merge_hashes(s.transitions.map(&.char_states)) })
           out_transitions.each do |char, ss|
             out_state_set = find_lambda_states(ss)
             out_state = get_state_for_set(new_nfa, states, out_state_set)

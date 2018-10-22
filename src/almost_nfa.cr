@@ -5,16 +5,27 @@ module Pegasus
         return {} of UInt8 => Set(State)
       end
     end
+
     class ByteTransition
       def char_states
         return { @byte => Set{@other} }
       end
     end
+
     class AnyTransition
       def char_states
-          return Hash.zip((0..255).to_a.map &.to_u8, Array.new(256, Set{@other}))
+        return Hash.zip((0_u8..255_u8).to_a, Array.new(256, Set{@other}))
       end
     end
+
+    class RangeTransition
+      def char_states
+        states = @ranges.map(&.to_a).flatten
+        states = (0_u8..255_u8).to_a - states if @inverted
+        return Hash.zip(states, Array.new(states.size, Set{@other}))
+      end
+    end
+
     class Nfa
       def find_lambda_states(s : State)
         found = Set(State).new

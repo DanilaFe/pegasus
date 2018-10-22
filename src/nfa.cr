@@ -24,6 +24,14 @@ module Pegasus
       end
     end
 
+    class RangeTransition < Transition
+      getter ranges : Array(Range(UInt8, UInt8))
+      getter inverted : Bool
+
+      def initialize(@ranges, @inverted, @other)
+      end
+    end
+
     class State
       property final : Bool
       property id : Int64

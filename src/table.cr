@@ -6,9 +6,9 @@ module Pegasus
       end
 
       def state_table
-        table = [Array.new(255, 0_i64)]
+        table = [Array.new(256, 0_i64)]
         @states.each do |state|
-          empty_table = Array.new(255, 0_i64)
+          empty_table = Array.new(256, 0_i64)
           state.transitions
               .select(&.is_a?(ByteTransition))
               .map(&.as(ByteTransition))

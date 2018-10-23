@@ -37,7 +37,7 @@ module Pegasus
         end
         @states.each do |state|
           label = "q#{state.id}"
-          if state.final
+          if state.final_id
             memory << "  "
             memory << label
             memory << " [shape=doublecircle]\n"

@@ -9,6 +9,7 @@ module Pegasus
               .select(&.is_a?(ByteTransition))
               .map(&.as(ByteTransition))
               .each do |transition|
+            puts transition.other.id
             empty_table[transition.byte] = transition.other.id + 1
           end
           table << empty_table

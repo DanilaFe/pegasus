@@ -55,8 +55,11 @@ module Pegasus
         if hash.has_key? set
           return hash[set]
         else
-          is_final = set.map(&.final).reduce { |l, r| l | r }
-          state = nfa.state(final: is_final)
+          is_final = set.map(&.final_id).reduce do |l, r|
+            next l || r unless l && r
+            next Math.max(l, r)
+          end
+          state = nfa.state(final_id: is_final)
           hash[set] = state
           return state
         end
@@ -71,7 +74,7 @@ module Pegasus
         # So, this is a set of "reachable states", and is itself a state.
         new_start_set = find_lambda_states(@start.not_nil!)
         # For every combination of states, the corresponding state in the new NFA.
-        states = Hash(Set(State), State).new
+        states = { new_start_set => new_nfa.start }
 
         # The queue of states to process.
         queue = Set { new_start_set }

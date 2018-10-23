@@ -24,16 +24,10 @@ module Pegasus
     end
 
     class Nfa
-      def initialize(str)
-        @last_id = 0_i64
-        @states = Set(State).new
-        @start = from_regex(str)
-      end
-
       private def nfa_plus(chain)
         if chain.start && chain.final
-          new_final = state(final: false)
-          new_start = state(final: false)
+          new_final = state
+          new_start = state
           new_final.transitions << LambdaTransition.new(new_start)
           chain.final.transitions << LambdaTransition.new(new_final)
           new_start.transitions << LambdaTransition.new(chain.start)
@@ -45,8 +39,8 @@ module Pegasus
 
       private def nfa_star(chain)
         if chain.start && chain.final
-          new_final = state(final: false)
-          new_start = state(final: false)
+          new_final = state
+          new_start = state
           new_final.transitions << LambdaTransition.new(new_start)
           new_start.transitions << LambdaTransition.new(new_final)
           chain.final.transitions << LambdaTransition.new(new_final)
@@ -59,8 +53,8 @@ module Pegasus
 
       private def nfa_question(chain)
         if chain.start && chain.final
-          new_final = state(final: false)
-          new_start = state(final: false)
+          new_final = state
+          new_start = state
           new_start.transitions << LambdaTransition.new(new_final)
           chain.final.transitions << LambdaTransition.new(new_final)
           new_start.transitions << LambdaTransition.new(chain.start)
@@ -107,8 +101,8 @@ module Pegasus
         raise "Invalid range definition" if tokens.first? != ']'
         tokens.delete_at(0)
         
-        start = state(final: false)
-        final = state(final: false)
+        start = state
+        final = state
         start.transitions << RangeTransition.new(ranges, invert, final)
         return StateChain.new(start, final)
       end
@@ -143,8 +137,8 @@ module Pegasus
             sub_chain = from_regex_expr(tokens)
           elsif char == '.'
             tokens.delete_at(0)
-            empty_state = state(final: false)
-            actual_state = state(final: false)
+            empty_state = state
+            actual_state = state
 
             empty_state.transitions << AnyTransition.new(actual_state)
             sub_chain = StateChain.new(empty_state, actual_state)
@@ -158,8 +152,8 @@ module Pegasus
           else
             char = read_char(tokens)
 
-            empty_state = state(final: false)
-            actual_state = state(final: false)
+            empty_state = state
+            actual_state = state
             empty_state.transitions << ByteTransition.new(char, actual_state)
             sub_chain = StateChain.new(empty_state, actual_state)
           end
@@ -174,8 +168,8 @@ module Pegasus
 
         if substring_stack.size > 0
           substring_stack.push current_chain if current_chain
-          start_state = state(final: false)
-          end_state = state(final: false)
+          start_state = state
+          end_state = state
           substring_stack.compact!.each do |chain|
             start_state.transitions << LambdaTransition.new(chain.start)
             chain.final.transitions << LambdaTransition.new(end_state)
@@ -186,12 +180,13 @@ module Pegasus
         return current_chain
       end
 
-      private def from_regex(str)
+      def add_regex(str, id)
         tokens = str.chars
         chain = from_regex_expr(tokens, require_parenths: false)
-        final_state = state(final: true)
+        final_state = state(final_id: id)
         final_chain = StateChain.new(final_state, final_state)
-        return (chain.try(&.append!(final_chain)) || final_chain).start
+        new_start = (chain.try(&.append!(final_chain)) || final_chain).start
+        @start.transitions << LambdaTransition.new(new_start)
       end
     end
   end

@@ -8,12 +8,38 @@ module Pegasus
 
       def initialize(@id)
       end
+
+      def ==(other : Terminal)
+        return @id == other.id
+      end
+
+      def hash(hasher)
+        @id.hash(hasher)
+        hasher
+      end
+
+      def to_s(io)
+        io << "Terminal(" << @id << ")"
+      end
     end
 
     class Nonterminal
       property id : Int64
 
       def initialize(@id)
+      end
+
+      def ==(other : Terminal)
+        return @id == other.id
+      end
+
+      def hash(hasher)
+        @id.hash(hasher)
+        hasher
+      end
+
+      def to_s(io)
+        io << "Nonterminal(" << @id << ")"
       end
     end
 
@@ -24,6 +50,42 @@ module Pegasus
       property body : Array(Terminal | Nonterminal)
 
       def initialize(@head, @body)
+      end
+
+      def ==(other : Item)
+        return (other.head == @head) && (other.body == @body)
+      end
+
+      def hash(hasher)
+        @head.hash(hasher)
+        @body.hash(hasher)
+        hasher
+      end
+
+      def to_s(io)
+          io << "Item(" << head << ", [" << body.map(&.to_s).join(", ")  << "])"
+      end
+    end
+
+    class DottedItem
+      property item : Item
+      property index : Int64
+
+      def initialize(@item, @index = 0_i64)
+      end
+
+      def ==(other : DottedItem)
+        return (other.item == @item) && (other.index == @index)
+      end
+
+      def hash(hasher)
+        @item.hash(hasher)
+        @index.hash(hasher)
+        hasher
+      end
+
+      def to_s(io)
+        io << "DottedItem(" << item << ", " << index << ")"
       end
     end
 
@@ -96,8 +158,6 @@ module Pegasus
         follow_sets[start] << Terminal.new(Terminal::SPECIAL_EOF)
         change_occured = true
 
-        puts "beginning.."
-
         while change_occured
           change_occured = false
           @items.each do |item|
@@ -120,6 +180,27 @@ module Pegasus
         end
 
         return follow_sets
+      end
+
+      private def new_dots(dots : Set(DottedItem))
+        dots.map do |dot|
+          next Set(DottedItem).new if dot.index >= dot.item.body.size
+          next Set(DottedItem).new if dot.item.body[dot.index].is_a?(Terminal)
+          next @items.select(&.head.==(dot.item.body[dot.index])).map { |it| DottedItem.new(it) }
+        end.reduce(Set(DottedItem).new) do |set, list|
+          set.concat list
+        end
+      end
+
+      private def all_dots(dots : Set(DottedItem))
+        found_dots = dots.dup
+        while concat_watching(found_dots, new_dots(found_dots))
+        end
+        return found_dots
+      end
+
+      private def all_dots(dot : DottedItem)
+        return all_dots(Set{ dot })
       end
 
       def add_item(i)

@@ -70,22 +70,24 @@ module Pegasus
     class DottedItem
       property item : Item
       property index : Int64
+      property lookahead : Set(Terminal)
 
-      def initialize(@item, @index = 0_i64)
+      def initialize(@item, @lookahead, @index = 0_i64)
       end
 
       def ==(other : DottedItem)
-        return (other.item == @item) && (other.index == @index)
+        return (other.item == @item) && (other.index == @index) && (other.lookahead == @lookahead)
       end
 
       def hash(hasher)
         @item.hash(hasher)
         @index.hash(hasher)
+        @lookahead.hash(hasher)
         hasher
       end
 
       def to_s(io)
-        io << "DottedItem(" << item << ", " << index << ")"
+          io << "DottedItem(" << item << ", " << index << ", {" << lookahead.map(&.to_s).join(", ") << "})"
       end
     end
 
@@ -118,8 +120,7 @@ module Pegasus
         end
 
         if alternative.size == 0
-          first << Terminal.new(Terminal::SPECIAL_EMPTY)
-          return true
+          return false
         end
 
         start_element = alternative.first
@@ -161,55 +162,40 @@ module Pegasus
         return first_sets
       end
 
-      def compute_follow(start, first_sets = compute_first)
-        follow_sets = Hash(Nonterminal, Set(Terminal)).new
-        @nonterminals.each { |nt| follow_sets[nt] = Set(Terminal).new }
-        follow_sets[start] << Terminal.new(Terminal::SPECIAL_EOF)
-        change_occured = true
-
-        while change_occured
-          change_occured = false
-          @items.each do |item|
-            next if item.body.size == 0
-            if item.body.last.is_a?(Nonterminal)
-              change_occured |= concat_watching(follow_sets[item.body.last], follow_sets[item.head])
-            end
-
-            index = 0
-            (0...item.body.size - 1).each do |index|
-              next unless item.body[index].is_a?(Nonterminal)
-              new_follow = first_sets[item.body[index...item.body.size]].dup
-              if contains_empty(new_follow)
-                new_follow.concat follow_sets[item.head]
-                new_follow = new_follow.reject &.id.==(Terminal::SPECIAL_EMPTY)
-              end
-              change_occured |= concat_watching(follow_sets[item.body[index]], new_follow)
-            end
-          end
+      private def get_lookahead(first_sets, alternative, old_lookahead)
+        lookahead = first_sets[alternative].dup
+        if contains_empty(lookahead)
+          lookahead.concat(old_lookahead)
+          lookahead = lookahead.reject &.id.==(Terminal::SPECIAL_EMPTY)
         end
-
-        return follow_sets
+        return lookahead.to_set
       end
 
-      private def new_dots(dots : Set(DottedItem))
+      private def create_dotted_items(first_sets, nonterminal, suffix, parent_lookahead)
+          return @items.select(&.head.==(nonterminal))
+                      .map { |it| DottedItem.new it, get_lookahead(first_sets, suffix, parent_lookahead) }
+      end
+
+      private def new_dots(first_sets, dots)
         dots.map do |dot|
           next Set(DottedItem).new if dot.index >= dot.item.body.size
           next Set(DottedItem).new if dot.item.body[dot.index].is_a?(Terminal)
-          next @items.select(&.head.==(dot.item.body[dot.index])).map { |it| DottedItem.new(it) }
+          next create_dotted_items(first_sets, dot.item.body[dot.index], dot.item.body[(dot.index+1)...dot.item.body.size], dot.lookahead)
         end.reduce(Set(DottedItem).new) do |set, list|
           set.concat list
         end
       end
 
-      private def all_dots(dots : Set(DottedItem))
+      def all_dots(first_sets, dots)
         found_dots = dots.dup
-        while concat_watching(found_dots, new_dots(found_dots))
+        while concat_watching(found_dots, new_dots(first_sets, dots))
         end
         return found_dots
       end
 
-      private def all_dots(dot : DottedItem)
-        return all_dots(Set{ dot })
+      def create_pda(start)
+        first_sets = compute_first
+        start_items = all_dots(@items.select &.head.==(start))
       end
 
       def add_item(i)

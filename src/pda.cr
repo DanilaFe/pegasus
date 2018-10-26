@@ -135,16 +135,25 @@ module Pegasus
         return concat_watching(first, add_first)
       end
 
+      private def compute_alternatives_first(first_sets, body)
+        change_occured = false
+        body.size.times do |time|
+          change_occured |= compute_alternative_first(first_sets, body[time...body.size])
+        end
+        return change_occured
+      end
+
       def compute_first
         first_sets = Hash(Element | Array(Element), Set(Terminal)).new
         @terminals.each { |t| first_sets[t] = Set { t } }
         @nonterminals.each { |nt| first_sets[nt] = Set(Terminal).new }
+        first_sets[[] of Element] = Set { Terminal.new(Terminal::SPECIAL_EMPTY) }
         change_occured = true
 
         while change_occured
           change_occured = false
           @items.each do |item|
-            change_occured |= compute_alternative_first(first_sets, item.body)
+            change_occured |= compute_alternatives_first(first_sets, item.body)
             change_occured |= concat_watching(first_sets[item.head], first_sets[item.body])
           end
         end

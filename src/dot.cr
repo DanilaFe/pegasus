@@ -1,6 +1,12 @@
 require "./nfa.cr"
 
 module Pegasus
+  class State(V, T)
+    def label
+      "q#{@id}"
+    end
+  end
+
   module Nfa
     class Transition
       def label
@@ -17,12 +23,6 @@ module Pegasus
     class LambdaTransition
       def label
         "(lambda)"
-      end
-    end
-
-    class State
-      def label
-        "q#{@id}"
       end
     end
 

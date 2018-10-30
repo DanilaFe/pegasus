@@ -111,16 +111,6 @@ module Pegasus
         return found_dots.to_set
       end
 
-      def get_state_for_set(pda, hash, set)
-        if hash.has_key? set
-          return hash[set]
-        else
-          state = pda.state(items: set)
-          hash[set] = state
-          return state
-        end
-      end
-
       def get_transitions(dotted_items)
         return dotted_items.compact_map do |dot|
             next nil unless dot.index < dot.item.body.size
@@ -142,7 +132,7 @@ module Pegasus
         # Set of all current dotted items
         all_start_items = all_dots(first_sets,  start_items)
         # Set of dotted items => corresponding state
-        states = Hash(Set(DottedItem), State).new
+        states = Hash(Set(DottedItem), PState).new
 
         queue = Set(Set(DottedItem)).new
         finished = Set(Set(DottedItem)).new
@@ -154,13 +144,12 @@ module Pegasus
           queue.delete dotted_items
           next if finished.includes? dotted_items
 
-
           finished << dotted_items
-          state = get_state_for_set(pda, states, dotted_items)
+          state = pda.state_for(data: dotted_items)
           transitions = get_transitions(dotted_items)
           transitions.each do |transition, items|
             items = all_dots(first_sets, items)
-            new_state = get_state_for_set(pda, states, items) 
+            new_state = pda.state_for data: dotted_items
             state.transitions[transition] = new_state
             queue << items
           end

@@ -1,8 +1,8 @@
 module Pegasus
   module Nfa
     class StateChain
-      property start : State
-      property final : State
+      property start : NState
+      property final : NState
 
       def initialize(@start, @final = @start)
       end
@@ -183,10 +183,10 @@ module Pegasus
       def add_regex(str, id)
         tokens = str.chars
         chain = from_regex_expr(tokens, require_parenths: false)
-        final_state = state(final_id: id)
+        final_state = state_for data: id
         final_chain = StateChain.new(final_state, final_state)
         new_start = (chain.try(&.append!(final_chain)) || final_chain).start
-        @start.transitions << LambdaTransition.new(new_start)
+        @start.not_nil!.transitions << LambdaTransition.new(new_start)
       end
     end
   end

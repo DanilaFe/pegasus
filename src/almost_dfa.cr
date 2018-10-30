@@ -2,7 +2,7 @@ module Pegasus
   module Nfa
     class Transition
       def char_states
-        return {} of UInt8 => Set(State)
+        return {} of UInt8 => Set(NState)
       end
     end
 
@@ -27,8 +27,8 @@ module Pegasus
     end
 
     class Nfa
-      def find_lambda_states(s : State)
-        found = Set(State).new
+      def find_lambda_states(s : NState)
+        found = Set(NState).new
         queued = Set{s}
         while !queued.empty?
           state = queued.first
@@ -41,10 +41,10 @@ module Pegasus
         return found
       end
 
-      def find_lambda_states(s : Set(State))
+      def find_lambda_states(s : Set(NState))
         return s
             .map { |it| find_lambda_states(it) }
-            .reduce(Set(State).new) { |acc, s| acc.concat s }
+            .reduce(Set(NState).new) { |acc, s| acc.concat s }
       end
 
       private def merge_hashes(a : Array(Hash(K, Set(V)))) forall K, V
@@ -55,11 +55,11 @@ module Pegasus
         if hash.has_key? set
           return hash[set]
         else
-          is_final = set.map(&.final_id).reduce do |l, r|
+          is_final = set.map(&.data).reduce do |l, r|
             next l || r unless l && r
             next Math.max(l, r)
           end
-          state = nfa.state(final_id: is_final)
+          state = nfa.state_for data: is_final
           hash[set] = state
           return state
         end
@@ -74,12 +74,12 @@ module Pegasus
         # So, this is a set of "reachable states", and is itself a state.
         new_start_set = find_lambda_states(@start.not_nil!)
         # For every combination of states, the corresponding state in the new NFA.
-        states = { new_start_set => new_nfa.start }
+        states = { new_start_set => new_nfa.start.not_nil! }
 
         # The queue of states to process.
         queue = Set { new_start_set }
         # Visited states.
-        finished = Set(Set(State)).new
+        finished = Set(Set(NState)).new
 
         while !queue.empty?
           state_set = queue.first

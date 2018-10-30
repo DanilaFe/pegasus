@@ -1,7 +1,11 @@
+require "./automaton.cr"
+
 module Pegasus
   module Nfa
+    alias NState = State(Int64?, Array(Transition))
+
     class Transition
-      property other : State
+      property other : NState
 
       def initialize(@other)
       end
@@ -32,30 +36,14 @@ module Pegasus
       end
     end
 
-    class State
-      property final_id : Int64?
-      property id : Int64
-      property transitions : Array(Transition)
-      
-      def initialize(*, @id = -1, @final_id = nil, @transitions = [] of Transition)
-      end
-    end
-
-    class Nfa
-      getter states : Set(State)
-      property start : State
-
-      def initialize(start = nil)
-        @last_id = 0_i64
-        @states = Set(State).new
-        @start = start || state
+    class Nfa < Automaton(Int64?, Array(Transition))
+      def initialize
+        super
+        @start = state_for(data: nil)
       end
 
-      def state(*, final_id : Int64? = nil)
-        new_state = State.new(id: @last_id, final_id: final_id);
-        @last_id += 1
-        @states << new_state
-        return new_state
+      def state
+        state_for data: nil
       end
     end
   end

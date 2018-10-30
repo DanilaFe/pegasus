@@ -2,7 +2,7 @@ module Pegasus
   module Nfa
     class Nfa
       def final_table
-        return [0] + @states.map { |s| s.final_id || 0 }
+        return [0] + @states.map { |s| s.data || 0 }
       end
 
       def state_table

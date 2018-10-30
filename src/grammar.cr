@@ -131,27 +131,25 @@ module Pegasus
         end.to_set
         # Set of all current dotted items
         all_start_items = all_dots(first_sets,  start_items)
-        # Set of dotted items => corresponding state
-        states = Hash(Set(DottedItem), PState).new
+        start_state = pda.state_for data: all_start_items
 
-        queue = Set(Set(DottedItem)).new
-        finished = Set(Set(DottedItem)).new
+        queue = Set(PState).new
+        finished = Set(PState).new
 
-        queue << all_start_items
+        queue << start_state
 
         while !queue.empty?
-          dotted_items = queue.first
-          queue.delete dotted_items
-          next if finished.includes? dotted_items
+          state = queue.first
+          queue.delete state
+          next if finished.includes? state
 
-          finished << dotted_items
-          state = pda.state_for(data: dotted_items)
-          transitions = get_transitions(dotted_items)
+          finished << state
+          transitions = get_transitions(state.data)
           transitions.each do |transition, items|
             items = all_dots(first_sets, items)
-            new_state = pda.state_for data: dotted_items
+            new_state = pda.state_for data: items
             state.transitions[transition] = new_state
-            queue << items
+            queue << new_state
           end
         end
 

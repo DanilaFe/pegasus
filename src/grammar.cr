@@ -85,15 +85,15 @@ module Pegasus
 
       private def create_dotted_items(first_sets, nonterminal, suffix, parent_lookahead)
           return @items.select(&.head.==(nonterminal))
-                      .map { |it| DottedItem.new it, get_lookahead(first_sets, suffix, parent_lookahead) }
+                      .map { |it| LookaheadItem.new it, get_lookahead(first_sets, suffix, parent_lookahead) }
       end
 
       private def new_dots(first_sets, dots)
         dots.map do |dot|
-          next Set(DottedItem).new if dot.index >= dot.item.body.size
-          next Set(DottedItem).new if dot.item.body[dot.index].is_a?(Terminal)
+          next Set(LookaheadItem).new if dot.index >= dot.item.body.size
+          next Set(LookaheadItem).new if dot.item.body[dot.index].is_a?(Terminal)
           next create_dotted_items(first_sets, dot.item.body[dot.index], dot.item.body[(dot.index+1)...dot.item.body.size], dot.lookahead)
-        end.reduce(Set(DottedItem).new) do |set, list|
+        end.reduce(Set(LookaheadItem).new) do |set, list|
           set.concat list
         end
       end
@@ -106,7 +106,7 @@ module Pegasus
         found_dots = groups.map do |k, v|
           item, index = k
           merged_lookahead = v.map(&.lookahead).reduce(Set(Terminal).new) { |l, r| l.concat r }
-          DottedItem.new item, merged_lookahead, index
+          LookaheadItem.new item, merged_lookahead, index
         end
         return found_dots.to_set
       end
@@ -115,26 +115,47 @@ module Pegasus
         return dotted_items.compact_map do |dot|
             next nil unless dot.index < dot.item.body.size
             next { dot.item.body[dot.index], dot.next_item }
-        end.reduce(Hash(Element, Set(DottedItem)).new) do |hash, kv|
+        end.reduce(Hash(Element, Set(LookaheadItem)).new) do |hash, kv|
            k, v = kv
            hash[k] = hash[k]?.try(&.<<(v)) || Set { v }
            next hash
         end
       end
 
-      def create_pda(start)
-        pda = Pda.new
+      def create_lalr_pda(lr_pda)
+        lalr_pda = LALRPda.new
+        groups = lr_pda.states.group_by { |s| s.data.map { |it| DottedItem.new it.item, it.index }.to_set }
+        states = Hash(typeof(lr_pda.states.first), typeof(lalr_pda.states.first)).new
+        groups.each do |items, equal_states|
+          new_state = lalr_pda.state_for data: items.to_set
+          equal_states.each do |state|
+            states[state] = new_state
+          end
+        end
+
+        lr_pda.states.each do |state|
+          new_state = states[state]
+          state.transitions.each do |e, other|
+            new_state.transitions[e] = states[other]
+          end
+        end
+
+        return lalr_pda
+      end
+
+      def create_lr_pda(start)
+        pda = LRPda.new
         first_sets = compute_first
         # Set of items starting with the start nonterminal
         start_items = @items.select(&.head.==(start)).map do |it| 
-            DottedItem.new it, Set { Terminal.new(Terminal::SPECIAL_EOF) }
+            LookaheadItem.new it, Set { Terminal.new(Terminal::SPECIAL_EOF) }
         end.to_set
         # Set of all current dotted items
         all_start_items = all_dots(first_sets,  start_items)
         start_state = pda.state_for data: all_start_items
 
-        queue = Set(PState).new
-        finished = Set(PState).new
+        queue = Set(LRState).new
+        finished = Set(LRState).new
 
         queue << start_state
 

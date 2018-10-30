@@ -4,9 +4,14 @@ require "./items.cr"
 
 module Pegasus
   module Pda
-    alias PState = State(Set(DottedItem), Hash(Element, PState))
+    alias LRState = State(Set(LookaheadItem), Hash(Element, LRState))
 
-    class Pda < UniqueAutomaton(Set(DottedItem), Hash(Element, PState))
+    class LRPda < UniqueAutomaton(Set(LookaheadItem), Hash(Element, LRState))
+    end
+
+    alias LALRState = State(Set(DottedItem), Hash(Element, LALRState))
+
+    class LALRPda < UniqueAutomaton(Set(DottedItem), Hash(Element, LALRState))
     end
   end
 end

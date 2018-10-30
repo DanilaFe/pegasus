@@ -27,30 +27,54 @@ module Pegasus
     class DottedItem
       property item : Item
       property index : Int64
-      property lookahead : Set(Terminal)
 
-      def initialize(@item, @lookahead, @index = 0_i64)
+      def initialize(@item, @index = 0_i64)
       end
 
       def ==(other : DottedItem)
-        return (other.item == @item) && (other.index == @index) && (other.lookahead == @lookahead)
+        return (other.item == @item) && (other.index == @index)
+      end
+
+      def to_s(io)
+          io << "DottedItem(" << item << ", " << index
+          io << ", COMPLETED" if index == @item.body.size
+          io << ")"
       end
 
       def hash(hasher)
         @item.hash(hasher)
         @index.hash(hasher)
+        hasher
+      end
+
+      def next_item
+        new = dup
+        new.index += 1 if new.index < new.item.body.size
+        return new
+      end
+    end
+
+    class LookaheadItem < DottedItem
+      property lookahead : Set(Terminal)
+
+      def initialize(@item, @lookahead, @index = 0_i64)
+        super(@item, @index)
+      end
+
+      def ==(other : LookaheadItem)
+        return super(other) && (other.lookahead == @lookahead)
+      end
+
+      def hash(hasher)
+        super(hasher)
         @lookahead.hash(hasher)
         hasher
       end
 
       def to_s(io)
-          io << "DottedItem(" << item << ", " << index << ", {" << lookahead.map(&.to_s).join(", ") << "}"
+          io << "LookaheadItem(" << item << ", " << index << ", {" << lookahead.map(&.to_s).join(", ") << "}"
           io << ", COMPLETED" if index == @item.body.size
           io << ")"
-      end
-
-      def next_item
-          return DottedItem.new(@item, @lookahead, @index + 1)
       end
     end
   end

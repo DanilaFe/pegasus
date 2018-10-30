@@ -100,16 +100,72 @@ module Pegasus
 
       private def all_dots(first_sets, dots)
         found_dots = dots.to_set.dup
-        while concat_watching(found_dots, new_dots(first_sets, dots))
+        while concat_watching(found_dots, new_dots(first_sets, found_dots))
         end
-        return found_dots
+        groups = found_dots.group_by { |dot| { dot.item, dot.index } }
+        found_dots = groups.map do |k, v|
+          item, index = k
+          merged_lookahead = v.map(&.lookahead).reduce(Set(Terminal).new) { |l, r| l.concat r }
+          DottedItem.new item, merged_lookahead, index
+        end
+        return found_dots.to_set
+      end
+
+      def get_state_for_set(pda, hash, set)
+        if hash.has_key? set
+          return hash[set]
+        else
+          state = pda.state(items: set)
+          hash[set] = state
+          return state
+        end
+      end
+
+      def get_transitions(dotted_items)
+        return dotted_items.compact_map do |dot|
+            next nil unless dot.index < dot.item.body.size
+            next { dot.item.body[dot.index], dot.next_item }
+        end.reduce(Hash(Element, Set(DottedItem)).new) do |hash, kv|
+           k, v = kv
+           hash[k] = hash[k]?.try(&.<<(v)) || Set { v }
+           next hash
+        end
       end
 
       def create_pda(start)
         pda = Pda.new
         first_sets = compute_first
-        start_items = all_dots(@items.select &.head.==(start))
+        # Set of items starting with the start nonterminal
+        start_items = @items.select(&.head.==(start)).map do |it| 
+            DottedItem.new it, Set { Terminal.new(Terminal::SPECIAL_EOF) }
+        end.to_set
+        # Set of all current dotted items
+        all_start_items = all_dots(first_sets,  start_items)
+        # Set of dotted items => corresponding state
         states = Hash(Set(DottedItem), State).new
+
+        queue = Set(Set(DottedItem)).new
+        finished = Set(Set(DottedItem)).new
+
+        queue << all_start_items
+
+        while !queue.empty?
+          dotted_items = queue.first
+          queue.delete dotted_items
+          next if finished.includes? dotted_items
+
+
+          finished << dotted_items
+          state = get_state_for_set(pda, states, dotted_items)
+          transitions = get_transitions(dotted_items)
+          transitions.each do |transition, items|
+            items = all_dots(first_sets, items)
+            new_state = get_state_for_set(pda, states, items) 
+            state.transitions[transition] = new_state
+            queue << items
+          end
+        end
+
         return pda
       end
 

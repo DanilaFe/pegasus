@@ -8,7 +8,7 @@ module Pegasus
       property items : Set(DottedItem)
       property transitions : Hash(Element, State)
 
-      def initialize(*, @id = -1, @items, @transitions = {} of Element => State)
+      def initialize(*, @id = -1_i64, @items, @transitions = {} of Element => State)
       end
     end
 
@@ -22,8 +22,9 @@ module Pegasus
       end
 
       def state(items)
-        new_state = State.new(@last_id, items)
+        new_state = State.new(id: @last_id, items: items)
         @last_id += 1
+        @states << new_state
         return new_state
       end
     end

@@ -44,7 +44,13 @@ module Pegasus
       end
 
       def to_s(io)
-          io << "DottedItem(" << item << ", " << index << ", {" << lookahead.map(&.to_s).join(", ") << "})"
+          io << "DottedItem(" << item << ", " << index << ", {" << lookahead.map(&.to_s).join(", ") << "}"
+          io << ", COMPLETED" if index == @item.body.size
+          io << ")"
+      end
+
+      def next_item
+          return DottedItem.new(@item, @lookahead, @index + 1)
       end
     end
   end

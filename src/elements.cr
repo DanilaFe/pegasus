@@ -29,7 +29,7 @@ module Pegasus
       def initialize(@id)
       end
 
-      def ==(other : Terminal)
+      def ==(other : Nonterminal)
         return @id == other.id
       end
 

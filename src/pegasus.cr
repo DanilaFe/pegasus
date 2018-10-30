@@ -1,6 +1,6 @@
 require "./nfa.cr"
 require "./dot.cr"
-require "./almost_dfa.cr"
+require "./nfa_to_dfa.cr"
 require "./regex.cr"
 
 # TODO: Write documentation for `Pegasus`

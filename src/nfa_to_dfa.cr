@@ -1,3 +1,6 @@
+require "./nfa.cr"
+require "./dfa.cr"
+
 module Pegasus
   module Nfa
     class Transition
@@ -51,30 +54,14 @@ module Pegasus
         a.reduce({} of K => Set(V)) { |l, r| l.merge(r) { |k, l1, r1| l1|r1 } }
       end
 
-      private def get_state_for_set(nfa, hash, set)
-        if hash.has_key? set
-          return hash[set]
-        else
-          is_final = set.map(&.data).reduce do |l, r|
-            next l || r unless l && r
-            next Math.max(l, r)
-          end
-          state = nfa.state_for data: is_final
-          hash[set] = state
-          return state
-        end
-      end
-
-      def almost_dfa
+      def dfa
         raise "NFA doesn't have start state" unless @start
 
-        # NFA (almost DFA) we're constructing
-        new_nfa = Nfa.new
+        # DFA we're constructing
+        new_dfa = Pegasus::Dfa::Dfa.new
         # The NFA->DFA algorithm creates a state for every reachable combination of NFA states.
         # So, this is a set of "reachable states", and is itself a state.
         new_start_set = find_lambda_states(@start.not_nil!)
-        # For every combination of states, the corresponding state in the new NFA.
-        states = { new_start_set => new_nfa.start.not_nil! }
 
         # The queue of states to process.
         queue = Set { new_start_set }
@@ -87,20 +74,18 @@ module Pegasus
           next if finished.includes? state_set
 
           finished << state_set
-          current_state = get_state_for_set(new_nfa, states, state_set)
+          current_state = new_dfa.state_for data: state_set
 
           out_transitions = merge_hashes(state_set.map { |s| merge_hashes(s.transitions.map(&.char_states)) })
           out_transitions.each do |char, ss|
             out_state_set = find_lambda_states(ss)
-            out_state = get_state_for_set(new_nfa, states, out_state_set)
-            current_state.transitions << ByteTransition.new(char, out_state)
+            out_state = new_dfa.state_for data: out_state_set
+            current_state.transitions[char] = out_state
             queue << out_state_set
           end
         end
 
-        new_nfa.start = states[new_start_set]
-
-        return new_nfa
+        return new_dfa
       end
     end
   end

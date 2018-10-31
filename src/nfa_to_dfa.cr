@@ -5,19 +5,19 @@ module Pegasus
   module Nfa
     class Transition
       def char_states
-        return {} of UInt8 => Set(NState)
+        return [] of UInt8
       end
     end
 
     class ByteTransition
       def char_states
-        return { @byte => Set{@other} }
+        return [ @byte ]
       end
     end
 
     class AnyTransition
       def char_states
-        return Hash.zip((0_u8..255_u8).to_a, Array.new(256, Set{@other}))
+        return (0_u8..255_u8).to_a
       end
     end
 
@@ -25,7 +25,7 @@ module Pegasus
       def char_states
         states = @ranges.map(&.to_a).flatten
         states = (0_u8..255_u8).to_a - states if @inverted
-        return Hash.zip(states, Array.new(states.size, Set{@other}))
+        return states
       end
     end
 
@@ -39,7 +39,7 @@ module Pegasus
           next if found.includes? state
 
           found << state
-          queued.concat state.transitions.select(&.is_a?(LambdaTransition)).map(&.other)
+          queued.concat state.transitions.select(&.is_a?(LambdaTransition)).map(&.[1])
         end
         return found
       end
@@ -75,7 +75,17 @@ module Pegasus
           next if finished.includes? state
 
           finished << state
-          out_transitions = merge_hashes(state.data.map { |s| merge_hashes(s.transitions.map(&.char_states)) })
+          sub_hashes = state.data.map do |sub_state|
+              transition_hashes = sub_state.transitions.map do |k, v|
+                char_states = k.char_states
+                set_array = Array.new(char_states.size) do |i|
+                  Set { v }
+                end
+                Hash.zip(char_states, set_array)
+              end
+              merge_hashes(transition_hashes)
+          end
+          out_transitions = merge_hashes(sub_hashes)
           out_transitions.each do |char, ss|
             out_state_set = find_lambda_states(ss)
             out_state = new_dfa.state_for data: out_state_set

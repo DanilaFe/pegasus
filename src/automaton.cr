@@ -2,9 +2,9 @@ module Pegasus
   class State(V, T)
     getter id : Int64
     getter data : V
-    getter transitions : T
+    getter transitions : Hash(T, self)
 
-    def initialize(*, @id, @data, @transitions = T.new)
+    def initialize(*, @id, @data, @transitions = Hash(T, self).new)
     end
   end
 

@@ -12,7 +12,7 @@ module Pegasus
           @start = other.start
           @final = other.final
         elsif other.start
-          @final.not_nil!.transitions << LambdaTransition.new(other.start.not_nil!)
+          @final.not_nil!.transitions[LambdaTransition.new] = other.start.not_nil!
           @final = other.final
         end
         return self
@@ -28,9 +28,9 @@ module Pegasus
         if chain.start && chain.final
           new_final = state
           new_start = state
-          new_final.transitions << LambdaTransition.new(new_start)
-          chain.final.transitions << LambdaTransition.new(new_final)
-          new_start.transitions << LambdaTransition.new(chain.start)
+          new_final.transitions[LambdaTransition.new] = new_start
+          chain.final.transitions[LambdaTransition.new] = new_final
+          new_start.transitions[LambdaTransition.new] = chain.start
 
           chain.start = new_start
           chain.final = new_final
@@ -41,10 +41,10 @@ module Pegasus
         if chain.start && chain.final
           new_final = state
           new_start = state
-          new_final.transitions << LambdaTransition.new(new_start)
-          new_start.transitions << LambdaTransition.new(new_final)
-          chain.final.transitions << LambdaTransition.new(new_final)
-          new_start.transitions << LambdaTransition.new(chain.start)
+          new_final.transitions[LambdaTransition.new] = new_start
+          new_start.transitions[LambdaTransition.new] = new_final
+          chain.final.transitions[LambdaTransition.new] = new_final
+          new_start.transitions[LambdaTransition.new] = chain.start
 
           chain.start = new_start
           chain.final = new_final
@@ -55,9 +55,9 @@ module Pegasus
         if chain.start && chain.final
           new_final = state
           new_start = state
-          new_start.transitions << LambdaTransition.new(new_final)
-          chain.final.transitions << LambdaTransition.new(new_final)
-          new_start.transitions << LambdaTransition.new(chain.start)
+          new_start.transitions[LambdaTransition.new] = new_final
+          chain.final.transitions[LambdaTransition.new] = new_final
+          new_start.transitions[LambdaTransition.new] = chain.start
 
           chain.start = new_start
           chain.final = new_final
@@ -103,7 +103,7 @@ module Pegasus
         
         start = state
         final = state
-        start.transitions << RangeTransition.new(ranges, invert, final)
+        start.transitions[RangeTransition.new(ranges, invert)] = final
         return StateChain.new(start, final)
       end
 
@@ -140,7 +140,7 @@ module Pegasus
             empty_state = state
             actual_state = state
 
-            empty_state.transitions << AnyTransition.new(actual_state)
+            empty_state.transitions[AnyTransition.new] = actual_state
             sub_chain = StateChain.new(empty_state, actual_state)
           elsif char == '|'
             tokens.delete_at(0)
@@ -154,7 +154,7 @@ module Pegasus
 
             empty_state = state
             actual_state = state
-            empty_state.transitions << ByteTransition.new(char, actual_state)
+            empty_state.transitions[ByteTransition.new char] = actual_state
             sub_chain = StateChain.new(empty_state, actual_state)
           end
         end
@@ -171,8 +171,8 @@ module Pegasus
           start_state = state
           end_state = state
           substring_stack.compact!.each do |chain|
-            start_state.transitions << LambdaTransition.new(chain.start)
-            chain.final.transitions << LambdaTransition.new(end_state)
+            start_state.transitions[LambdaTransition.new] = chain.start
+            chain.final.transitions[LambdaTransition.new] = end_state
           end
           current_chain = StateChain.new(start_state, end_state)
         end
@@ -186,7 +186,7 @@ module Pegasus
         final_state = state_for data: id
         final_chain = StateChain.new(final_state, final_state)
         new_start = (chain.try(&.append!(final_chain)) || final_chain).start
-        @start.not_nil!.transitions << LambdaTransition.new(new_start)
+        @start.not_nil!.transitions[LambdaTransition.new] = new_start
       end
     end
   end

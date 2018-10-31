@@ -123,11 +123,18 @@ module Pegasus
       end
 
       def create_lalr_pda(lr_pda)
-        lalr_pda = LALRPda.new
+        lalr_pda = Pda.new @items
         groups = lr_pda.states.group_by { |s| s.data.map { |it| DottedItem.new it.item, it.index }.to_set }
         states = Hash(typeof(lr_pda.states.first), typeof(lalr_pda.states.first)).new
         groups.each do |items, equal_states|
-          new_state = lalr_pda.state_for data: items.to_set
+          item_groups = equal_states
+              .flat_map(&.data.each)
+              .group_by { |it| DottedItem.new it.item, it.index }
+          merged_items = item_groups.map do |kv|
+            dotted_item, items = kv
+            LookaheadItem.new dotted_item.item, items.flat_map(&.lookahead.each).to_set, dotted_item.index
+          end.to_set
+          new_state = lalr_pda.state_for data: merged_items
           equal_states.each do |state|
             states[state] = new_state
           end
@@ -144,7 +151,7 @@ module Pegasus
       end
 
       def create_lr_pda(start)
-        pda = LRPda.new
+        pda = Pda.new @items
         first_sets = compute_first
         # Set of items starting with the start nonterminal
         start_items = @items.select(&.head.==(start)).map do |it| 
@@ -154,8 +161,8 @@ module Pegasus
         all_start_items = all_dots(first_sets,  start_items)
         start_state = pda.state_for data: all_start_items
 
-        queue = Set(LRState).new
-        finished = Set(LRState).new
+        queue = Set(PState).new
+        finished = Set(PState).new
 
         queue << start_state
 

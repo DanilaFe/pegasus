@@ -52,6 +52,10 @@ module Pegasus
         new.index += 1 if new.index < new.item.body.size
         return new
       end
+
+      def done?
+          return @index == @item.body.size
+      end
     end
 
     class LookaheadItem < DottedItem

@@ -2,7 +2,7 @@ module Pegasus
   module Dfa
     class Dfa
       def final_table
-        return [0] + @states.map { |s| s.data.compact_map(&.data).max? || 0 }
+        return [0_i64] + @states.map { |s| s.data.compact_map(&.data).max_of?(&.+(1)) || 0_i64 }
       end
 
       def state_table

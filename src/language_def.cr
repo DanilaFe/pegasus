@@ -134,7 +134,7 @@ module Pegasus
         return terminals
       end
 
-      def generate_grammar
+      private def generate_grammar
         nonterminals = find_nonterminals
         terminals = find_terminals
         items = [] of Pegasus::Pda::Item
@@ -159,7 +159,23 @@ module Pegasus
           grammar.add_item i
         end
 
-        return grammar
+        return { terminals, nonterminals, grammar }
+      end
+
+      def generate
+        terminals, nonterminals, grammar = generate_grammar
+        nfa = Pegasus::Nfa::Nfa.new
+        terminals.each do |regex, value|
+          nfa.add_regex regex, value.id
+        end
+        dfa = nfa.dfa
+        lex_state_table = dfa.state_table
+        lex_final_table = dfa.final_table
+        lr_pda = grammar.create_lr_pda(nonterminals.values.find { |it| it.id == 0 })
+        lalr_pda = grammar.create_lalr_pda(lr_pda)
+        parse_state_table = lalr_pda.state_table
+        parse_action_table = lalr_pda.action_table
+        return { lex_state_table, lex_final_table, parse_state_table, parse_action_table }
       end
 
       def from_string(string)

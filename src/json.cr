@@ -4,13 +4,13 @@ module Pegasus
   module Pda
     class Terminal
       JSON.mapping(
-        id: Int64
+        id: { type: Int64, key: "terminal_id" }
       )
     end
 
     class Nonterminal
       JSON.mapping(
-        id: Int64
+        id: { type: Int64, key: "nonterminal_id" }
       )
     end
 

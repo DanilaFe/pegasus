@@ -1,52 +1,76 @@
 module Pegasus
   module Language
+    class LanguageData
+      getter lex_state_table : Array(Array(Int64))
+      getter lex_final_table : Array(Int64)
+      getter parse_state_table : Array(Array(Int64))
+      getter parse_action_table : Array(Array(Int64))
+
+      getter terminals : Hash(String, Pegasus::Pda::Terminal)
+      getter nonterminals : Hash(String, Pegasus::Pda::Nonterminal)
+      getter items : Array(Pegasus::Pda::Item)
+      getter max_terminal : Int64
+
+      def initialize(*,
+                     @lex_state_table,
+                     @lex_final_table,
+                     @parse_state_table,
+                     @parse_action_table,
+                     @terminals,
+                     @nonterminals,
+                     @items)
+        @max_terminal = @terminals.values.max_of?(&.id) || 0_i64
+      end
+    end
+
+    enum ParseState
+      Base,
+      ParseHead,
+      ParseEquals,
+      ParseRegex,
+      ParseId
+      ParseBody
+    end
+    
+    class TerminalRegex
+      getter regex : String
+
+      def initialize(@regex)
+      end
+
+      def to_s(io)
+        io << "\"" << @regex << "\""
+      end
+    end
+
+    class NonterminalName
+      getter name : String
+
+      def initialize(@name)
+      end
+
+      def to_s(io)
+        io << @name
+      end
+    end
+
+    class Declaration
+      getter head : String
+      getter bodies : Array(Array(TerminalRegex | NonterminalName))
+
+      def initialize(@head, @bodies)
+      end
+
+      def to_s(io)
+        io << head
+        io << " = " << declarations.map do |decl|
+          decl.map(&.to_s).join " "
+        end.join "\n | "
+      end
+    end
+
+
     class LanguageDefinition
-      enum ParseState
-        Base,
-        ParseHead,
-        ParseEquals,
-        ParseRegex,
-        ParseId
-        ParseBody
-      end
-      
-      class TerminalRegex
-        getter regex : String
-
-        def initialize(@regex)
-        end
-
-        def to_s(io)
-          io << "\"" << @regex << "\""
-        end
-      end
-
-      class NonterminalName
-        getter name : String
-
-        def initialize(@name)
-        end
-
-        def to_s(io)
-          io << @name
-        end
-      end
-
-      class Declaration
-        getter head : String
-        getter bodies : Array(Array(TerminalRegex | NonterminalName))
-
-        def initialize(@head, @bodies)
-        end
-
-        def to_s(io)
-          io << head
-          io << " = " << declarations.map do |decl|
-            decl.map(&.to_s).join " "
-          end.join "\n | "
-        end
-      end
-
       def initialize
         @declarations = [] of Declaration
       end
@@ -177,9 +201,14 @@ module Pegasus
         lalr_pda = grammar.create_lalr_pda(lr_pda)
         parse_state_table = lalr_pda.state_table
         parse_action_table = lalr_pda.action_table
-        return { lex_state_table, lex_final_table,
-                 parse_state_table, parse_action_table,
-                 max_terminal, items }
+        return LanguageData.new(
+            lex_state_table: lex_state_table,
+            lex_final_table: lex_final_table,
+            parse_state_table: parse_state_table,
+            parse_action_table: parse_action_table,
+            terminals: terminals,
+            nonterminals: nonterminals,
+            items: items.to_a)
       end
 
       def from_string(string)

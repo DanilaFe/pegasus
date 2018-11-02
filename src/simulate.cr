@@ -43,12 +43,7 @@ module Pegasus
     end
 
     class Simulator
-      alias TwoTable = Array(Array(Int64))
-      alias OneTable = Array(Int64)
-
-      def initialize(*, @lex_state_table : TwoTable, @lex_final_table : OneTable,
-                     @parse_state_table : TwoTable, @parse_action_table : TwoTable,
-                     @max_terminal : Int64, @items : Array(Pegasus::Pda::Item))
+      def initialize(@data : Pegasus::Language::LanguageData)
       end
 
       private def lex(string)
@@ -61,13 +56,13 @@ module Pegasus
           start = index
           last_match = { -1_i64, -1_i64 }
           while state != 0 && index < bytes.size
-            if (token = @lex_final_table[state]) != 0
+            if (token = @data.lex_final_table[state]) != 0
               last_match = { index, token }
             end
-            state = @lex_state_table[state][bytes[index]]
+            state = @data.lex_state_table[state][bytes[index]]
             index += 1 if state != 0
           end
-          if (token = @lex_final_table[state]) != 0
+          if (token = @data.lex_final_table[state]) != 0
             last_match = { index, token }
           end
           
@@ -88,23 +83,23 @@ module Pegasus
         state_stack =  [ 1_i64 ]
         index = 0
 
-        while state_stack.last? != 0 && tree_stack.last?.try(&.id) != (@max_terminal + 1 + 1)
+        while state_stack.last? != 0 && tree_stack.last?.try(&.id) != (@data.max_terminal + 1 + 1)
           current_token = tokens[index]?
-          action = @parse_action_table[state_stack.last][current_token.try(&.id) || 0_i64]
+          action = @data.parse_action_table[state_stack.last][current_token.try(&.id) || 0_i64]
           if action == 0
             raise "Cannot shift on empty token" unless current_token
-            tree_stack << Tree.new(current_token, @max_terminal)
+            tree_stack << Tree.new(current_token, @data.max_terminal)
             index += 1
           else
-            item = @items[action - 1]
+            item = @data.items[action - 1]
             children = [] of Tree
             item.body.size.times do
               children.insert(0, tree_stack.pop)
               state_stack.pop
             end
-            tree_stack << Tree.new(item.head, @max_terminal, children)
+            tree_stack << Tree.new(item.head, @data.max_terminal, children)
           end
-          state_stack << @parse_state_table[state_stack.last][tree_stack.last.id]
+          state_stack << @data.parse_state_table[state_stack.last][tree_stack.last.id]
         end
 
         raise "Invalid syntax" unless (index == tokens.size) || (state_stack.last? == 0)

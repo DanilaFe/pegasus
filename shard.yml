@@ -4,6 +4,12 @@ version: 0.1.0
 authors:
   - Danila Fedorin <danila.fedorin@gmail.com>
 
+targets:
+  pegasus:
+    main: src/pegasus.cr
+  pegasus-dot:
+    main: src/pegasus-dot.cr
+
 crystal: 0.26.1
 
 license: MIT

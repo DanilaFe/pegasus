@@ -27,13 +27,19 @@ module Pegasus
         end || 0_i64
 
         # +1 for potential -1, +1 since terminal IDs start at 0.
-        table = Array.new(@states.size + 1) { |inded| Array.new(max_terminal + 1 + 1, 0_i64) }
+        table = Array.new(@states.size + 1) { |inded| Array.new(max_terminal + 1 + 1, -1_i64) }
         @states.each do |state|
           done_items = state.data.select &.done?
+          shiftable_items = state.data.select do |item|
+            !item.done? && item.item.body[item.index].is_a?(Terminal)
+          end
           done_items.each do |item|
             item.lookahead.each do |terminal|
               table[state.id + 1][terminal.id + 1] = @items.index(item.item).not_nil!.to_i64 + 1
             end
+          end
+          shiftable_items.each do |item|
+            table[state.id + 1][item.item.body[item.index].as(Terminal).id + 1] = 0
           end
         end
         

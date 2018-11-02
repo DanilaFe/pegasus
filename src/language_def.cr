@@ -168,14 +168,18 @@ module Pegasus
         terminals.each do |regex, value|
           nfa.add_regex regex, value.id
         end
+        max_terminal = terminals.values.max_of? &.id || 0_i64
         dfa = nfa.dfa
         lex_state_table = dfa.state_table
         lex_final_table = dfa.final_table
+        items = grammar.items
         lr_pda = grammar.create_lr_pda(nonterminals.values.find { |it| it.id == 0 })
         lalr_pda = grammar.create_lalr_pda(lr_pda)
         parse_state_table = lalr_pda.state_table
         parse_action_table = lalr_pda.action_table
-        return { lex_state_table, lex_final_table, parse_state_table, parse_action_table }
+        return { lex_state_table, lex_final_table,
+                 parse_state_table, parse_action_table,
+                 max_terminal, items }
       end
 
       def from_string(string)

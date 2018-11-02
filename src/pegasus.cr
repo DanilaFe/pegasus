@@ -1,7 +1,5 @@
-require "./nfa.cr"
-require "./dot.cr"
-require "./nfa_to_dfa.cr"
-require "./regex.cr"
+require "./language_def.cr"
+require "./json.cr"
 
 # TODO: Write documentation for `Pegasus`
 module Pegasus
@@ -9,3 +7,10 @@ module Pegasus
 
   # TODO: Put your code here
 end
+
+grammar = STDIN.gets_to_end
+
+data = Pegasus::Language::LanguageDefinition
+    .new(grammar)
+    .generate
+data.to_json(STDOUT)

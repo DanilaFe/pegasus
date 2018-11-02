@@ -24,9 +24,9 @@ module Pegasus
     def to_dot
       memory = IO::Memory.new
       memory << "digraph G {\n"
-      if s = @start
+      if start_state = @start
         memory << "  "
-        memory << s.dot_label
+        memory << start_state.dot_label
         memory << " [shape=diamond]\n"
       end
       @states.each do |state|

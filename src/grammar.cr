@@ -1,5 +1,6 @@
 require "./elements.cr"
 require "./items.cr"
+require "./pda.cr"
 
 module Pegasus
   module Pda
@@ -70,7 +71,7 @@ module Pegasus
             change_occured |= concat_watching(first_sets[item.head], first_sets[item.body])
           end
         end
-        
+
         return first_sets
       end
 
@@ -126,7 +127,7 @@ module Pegasus
         lalr_pda = Pda.new @items
         groups = lr_pda.states.group_by { |s| s.data.map { |it| DottedItem.new it.item, it.index }.to_set }
         states = Hash(typeof(lr_pda.states.first), typeof(lalr_pda.states.first)).new
-        groups.each do |items, equal_states|
+        groups.each do |_, equal_states|
           item_groups = equal_states
               .flat_map(&.data.each)
               .group_by { |it| DottedItem.new it.item, it.index }
@@ -154,7 +155,7 @@ module Pegasus
         pda = Pda.new @items
         first_sets = compute_first
         # Set of items starting with the start nonterminal
-        start_items = @items.select(&.head.==(start)).map do |it| 
+        start_items = @items.select(&.head.==(start)).map do |it|
             LookaheadItem.new it, Set { Terminal.new(Terminal::SPECIAL_EOF) }
         end.to_set
         # Set of all current dotted items

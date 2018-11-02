@@ -9,8 +9,8 @@ module Pegasus
         table = [Array.new(256, 0_i64)]
         @states.each do |state|
           empty_table = Array.new(256, 0_i64)
-          state.transitions.each do |byte, state|
-            empty_table[byte] = state.id + 1
+          state.transitions.each do |byte, out_state|
+            empty_table[byte] = out_state.id + 1
           end
           table << empty_table
         end
@@ -27,7 +27,7 @@ module Pegasus
         end || 0_i64
 
         # +1 for potential -1, +1 since terminal IDs start at 0.
-        table = Array.new(@states.size + 1) { |inded| Array.new(max_terminal + 1 + 1, -1_i64) }
+        table = Array.new(@states.size + 1) { Array.new(max_terminal + 1 + 1, -1_i64) }
         @states.each do |state|
           done_items = state.data.select &.done?
           shiftable_items = state.data.select do |item|
@@ -42,10 +42,10 @@ module Pegasus
             table[state.id + 1][item.item.body[item.index].as(Terminal).id + 1] = 0
           end
         end
-        
+
         return table
       end
-      
+
       def state_table
         max_terminal = @items.max_of? do |item|
           item.body.select(&.is_a?(Terminal)).max_of?(&.id) || 0_i64
@@ -56,7 +56,7 @@ module Pegasus
         end || 0_i64
 
         # +1 for potential -1 in terminal, +1 + 1 because both terminal and nonterminals start at 0.
-        table = Array.new(@states.size + 1) { |i| Array.new(max_nonterminal + max_terminal + 1 + 1 + 1, 0_i64) }
+        table = Array.new(@states.size + 1) { Array.new(max_nonterminal + max_terminal + 1 + 1 + 1, 0_i64) }
         @states.each do |state|
           state.transitions.each do |token, to|
             case token

@@ -47,11 +47,11 @@ module Pegasus
       def find_lambda_states(s : Set(NState))
         return s
             .map { |it| find_lambda_states(it) }
-            .reduce(Set(NState).new) { |acc, s| acc.concat s }
+            .reduce(Set(NState).new) { |acc, r| acc.concat r }
       end
 
       private def merge_hashes(a : Array(Hash(K, Set(V)))) forall K, V
-        a.reduce({} of K => Set(V)) { |l, r| l.merge(r) { |k, l1, r1| l1|r1 } }
+        a.reduce({} of K => Set(V)) { |l, r| l.merge(r) { |_, l1, r1| l1|r1 } }
       end
 
       def dfa
@@ -78,7 +78,7 @@ module Pegasus
           sub_hashes = state.data.map do |sub_state|
               transition_hashes = sub_state.transitions.map do |k, v|
                 char_states = k.char_states
-                set_array = Array.new(char_states.size) do |i|
+                set_array = Array.new(char_states.size) do
                   Set { v }
                 end
                 Hash.zip(char_states, set_array)

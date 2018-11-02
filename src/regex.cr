@@ -17,7 +17,7 @@ module Pegasus
         end
         return self
       end
-      
+
       def append!(other : Nil)
         return self
       end
@@ -100,7 +100,7 @@ module Pegasus
 
         raise "Invalid range definition" if tokens.first? != ']'
         tokens.delete_at(0)
-        
+
         start = state
         final = state
         start.transitions[RangeTransition.new(ranges, invert)] = final

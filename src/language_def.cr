@@ -1,3 +1,11 @@
+require "./elements.cr"
+require "./items.cr"
+require "./grammar.cr"
+require "./nfa.cr"
+require "./regex.cr"
+require "./nfa_to_dfa.cr"
+require "./table.cr"
+
 module Pegasus
   module Language
     class LanguageData
@@ -31,7 +39,7 @@ module Pegasus
       ParseId
       ParseBody
     end
-    
+
     class TerminalRegex
       getter regex : String
 
@@ -110,7 +118,7 @@ module Pegasus
       end
 
       private def visit_nonterminal(id, hash, name)
-        hash_get(hash, name) do |n|
+        hash_get(hash, name) do
           id += 1
           Pegasus::Pda::Nonterminal.new (id - 1)
         end
@@ -118,7 +126,7 @@ module Pegasus
       end
 
       private def visit_terminal(id, hash, name)
-        hash_get(hash, name) do |n|
+        hash_get(hash, name) do
           id += 1
           Pegasus::Pda::Terminal.new (id - 1)
         end
@@ -128,7 +136,7 @@ module Pegasus
       private def find_nonterminals
         nonterminal_id = 0_i64
         nonterminals = {} of String => Pegasus::Pda::Nonterminal
-        
+
         @declarations.each do |decl|
           nonterminal_id = visit_nonterminal(nonterminal_id, nonterminals, decl.head)
           decl.bodies.each do |body|
@@ -192,7 +200,6 @@ module Pegasus
         terminals.each do |regex, value|
           nfa.add_regex regex, value.id
         end
-        max_terminal = terminals.values.max_of? &.id || 0_i64
         dfa = nfa.dfa
         lex_state_table = dfa.state_table
         lex_final_table = dfa.final_table
@@ -235,16 +242,16 @@ module Pegasus
             pop_while chars, &.ascii_whitespace?
             char = chars.pop?
             next unless char
-            
+
             if char == '"'
               acc = ""
-              pop_while chars, do |char|
-                next false if char == '"'
-                if char == '\\'
-                  char = chars.pop?
-                  raise "Invalid escape code!" unless char
+              pop_while chars, do |string_char|
+                next false if string_char == '"'
+                if string_char == '\\'
+                  string_char = chars.pop?
+                  raise "Invalid escape code!" unless string_char
                 end
-                acc += char
+                acc += string_char
                 next true
               end
               raise "Invalid grammar declaration" unless chars.last? == '"'

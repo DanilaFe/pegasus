@@ -1,10 +1,12 @@
 module Pegasus
   module Dfa
     class Dfa
+      # Creates a final table, which is used to determine if a state matched a token.
       def final_table
         return [0_i64] + @states.map { |s| s.data.compact_map(&.data).max_of?(&.+(1)) || 0_i64 }
       end
 
+      # Creates a transition table given, see `Pegasus::Language::LanguageData`
       def state_table
         table = [Array.new(256, 0_i64)]
         @states.each do |state|
@@ -21,6 +23,8 @@ module Pegasus
 
   module Pda
     class Pda
+      # Creates an action table, determing what the parser should do
+      # at the given state and the lookhead token.
       def action_table
         max_terminal = @items.max_of? do |item|
           item.body.select(&.is_a?(Terminal)).max_of?(&.id) || 0_i64
@@ -46,6 +50,7 @@ module Pegasus
         return table
       end
 
+      # Creates a transition table that is indexed by both Terminals and Nonterminals.
       def state_table
         max_terminal = @items.max_of? do |item|
           item.body.select(&.is_a?(Terminal)).max_of?(&.id) || 0_i64

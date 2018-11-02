@@ -8,17 +8,34 @@ require "./table.cr"
 
 module Pegasus
   module Language
+    # The complete data class, built to be all the information
+    # needed to construct a parser generator.
     class LanguageData
+      # The state table for the lexer, which is used for transitions
+      # of the `Pegasus::Nfa::Nfa` during tokenizing.
       getter lex_state_table : Array(Array(Int64))
+      # The table that maps a state ID to a token ID, used to
+      # recognize that a match has occured.
       getter lex_final_table : Array(Int64)
+      # Transition table for the LALR parser automaton, indexed
+      # by terminal and nonterminal IDs.
       getter parse_state_table : Array(Array(Int64))
+      # Action table indexed by the state and the lookahead item.
+      # Used to determine what the parser should do in each state.
       getter parse_action_table : Array(Array(Int64))
 
+      # The terminals, and their original names / regular expressions.
       getter terminals : Hash(String, Pegasus::Pda::Terminal)
+      # The nonterminals, and their original names.
       getter nonterminals : Hash(String, Pegasus::Pda::Nonterminal)
+      # The items in the language. Used for reducing / building up
+      # trees once a reduce action is performed.
       getter items : Array(Pegasus::Pda::Item)
+      # The highest terminal ID, used for correctly accessing the
+      # tables indexed by both terminal and nonterminal IDs.
       getter max_terminal : Int64
 
+      # Creates a new language data object.
       def initialize(*,
                      @lex_state_table,
                      @lex_final_table,
@@ -31,18 +48,26 @@ module Pegasus
       end
     end
 
+    # The state for the grammar parser.
     enum ParseState
-      Base,
+      # We're just eating blank spaces waiting for the grammar rule.
+      Base, 
+      # We're expecting the right hand side declaration of a production rule.
       ParseHead,
+      # We're expecting an equal sign which sits between the head and body of the production.
       ParseEquals,
-      ParseRegex,
-      ParseId
+      # We're parsing the body of the grammar, which consists of zero or more tokens.
       ParseBody
     end
 
+    # Simply a wrapper class to hold a regular expression
+    # literal as specified by the user. This exists so that
+    # the body is made up of two distinctive elements rather than strings.
     class TerminalRegex
+      # The regular expression the user used to describe this terminal.
       getter regex : String
 
+      # Creates an new temrinal with the given regular expression.
       def initialize(@regex)
       end
 
@@ -51,9 +76,13 @@ module Pegasus
       end
     end
 
+    # Another wrapper, this time for the name of a nonterminal element.
+    # See `TerminalRegex` for an explanation of why this exists.
     class NonterminalName
+      # The name of this nonterminal.
       getter name : String
 
+      # Creates a new nonterminal
       def initialize(@name)
       end
 
@@ -62,10 +91,14 @@ module Pegasus
       end
     end
 
+    # A declaration of a grammar rule, including several bodies separated by the `|` character.
     class Declaration
+      # The head of this declaration. This a string because it can only by nonterminal.
       getter head : String
+      # The bodies of the declaration, each of which is a valid production rule body.
       getter bodies : Array(Array(TerminalRegex | NonterminalName))
 
+      # Creates a new declaration with the given head and bodies.
       def initialize(@head, @bodies)
       end
 
@@ -78,27 +111,33 @@ module Pegasus
     end
 
 
+    # A language definition parsed from a grammar string.
     class LanguageDefinition
+      # Creates a new, empty language definition.
       def initialize
         @declarations = [] of Declaration
       end
 
+      # Creates a new language definition from the given string.
       def initialize(s : String)
         @declarations = [] of Declaration
         from_string(s)
       end
 
+      # Creates a new language definition from the given IO.
       def initialize(io : IO)
         @declarations = [] of Declaration
         from_io(io)
       end
 
+      # Pops tokens from the stack until the bock returns false.
       private def pop_while(chars, &block)
         while (char = chars.pop?) && yield char
         end
         chars.push char if char
       end
 
+      # Reads a nonterminal name from the given list of characters.
       private def read_name(chars)
         acc = ""
         pop_while chars, do |char|
@@ -109,6 +148,7 @@ module Pegasus
         return acc
       end
 
+      # Gets a key from a hash, and if the key doesn't exist, generates it using the block.
       private def hash_get(hash, key, &block)
         if hash.has_key? key
           return hash[key]
@@ -117,6 +157,8 @@ module Pegasus
         return (hash[key] = yield key)
       end
 
+      # Creates an entry for the given nonterminal name in the hash,
+      # unless one exists.
       private def visit_nonterminal(id, hash, name)
         hash_get(hash, name) do
           id += 1
@@ -125,6 +167,8 @@ module Pegasus
         return id
       end
 
+      # Creates an entry for the given terminal name in the hash,
+      # unless one exists.
       private def visit_terminal(id, hash, name)
         hash_get(hash, name) do
           id += 1
@@ -133,6 +177,7 @@ module Pegasus
         return id
       end
 
+      # Finds all the nonterminals in the list of declarations.
       private def find_nonterminals
         nonterminal_id = 0_i64
         nonterminals = {} of String => Pegasus::Pda::Nonterminal
@@ -150,6 +195,7 @@ module Pegasus
         return nonterminals
       end
 
+      # Finds all the terminals in the list of declarations.
       private def find_terminals
         terminal_id = 0_i64
         terminals = {} of String => Pegasus::Pda::Terminal
@@ -166,6 +212,8 @@ module Pegasus
         return terminals
       end
 
+      # Creates a grammar, returning it and the hashes with identifiers for
+      # the terminals and nonterminals.
       private def generate_grammar
         nonterminals = find_nonterminals
         terminals = find_terminals
@@ -194,6 +242,7 @@ module Pegasus
         return { terminals, nonterminals, grammar }
       end
 
+      # Generates a `LanguageData` object, thereby completing the task of Pegasus.
       def generate
         terminals, nonterminals, grammar = generate_grammar
         nfa = Pegasus::Nfa::Nfa.new
@@ -218,7 +267,8 @@ module Pegasus
             items: items)
       end
 
-      def from_string(string)
+      # Creates a language definition from a string.
+      private def from_string(string)
         chars = string.reverse.chars
         state = ParseState::Base
         current_head = ""
@@ -275,7 +325,8 @@ module Pegasus
         end
       end
 
-      def from_io(io)
+      # Creates a languge definition from IO.
+      private def from_io(io)
         string = io.gets_to_end
         from_string(string)
       end

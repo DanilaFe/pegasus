@@ -4,6 +4,8 @@ require "./dfa.cr"
 module Pegasus
   module Nfa
     class Transition
+      # Returns the characters this transition accepts
+      # for transitions.
       def char_states
         return [] of UInt8
       end
@@ -30,7 +32,9 @@ module Pegasus
     end
 
     class Nfa
-      def find_lambda_states(s : NState)
+      # Finds all the states connected to the given state
+      # through lambda transitions, which will be in the same `Pegasus::Dfa::Dfa` state.
+      private def find_lambda_states(s : NState)
         found = Set(NState).new
         queued = Set{s}
         while !queued.empty?
@@ -44,16 +48,19 @@ module Pegasus
         return found
       end
 
+      # Finds the lambda states connected to any of the states of the given set.
       def find_lambda_states(s : Set(NState))
         return s
             .map { |it| find_lambda_states(it) }
             .reduce(Set(NState).new) { |acc, r| acc.concat r }
       end
 
+      # Merges the sets mapped to by the same key in the list of hashes.
       private def merge_hashes(a : Array(Hash(K, Set(V)))) forall K, V
         a.reduce({} of K => Set(V)) { |l, r| l.merge(r) { |_, l1, r1| l1|r1 } }
       end
 
+      # Creates a `Pegasus::Dfa::Dfa` for this Nfa.
       def dfa
         raise "NFA doesn't have start state" unless @start
 

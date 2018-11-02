@@ -1,12 +1,18 @@
 module Pegasus
   module Nfa
+    # A "unit" of one or more connected states.
     class StateChain
+      # The beginning of this chain.
       property start : NState
+      # The end of this chain.
       property final : NState
 
+      # Creates a new chain with the given initial and final states.
       def initialize(@start, @final = @start)
       end
 
+      # Appends another chain to this one, modifying the states' transition
+      # hashes, too.
       def append!(other : StateChain)
         if @final == nil
           @start = other.start
@@ -18,12 +24,14 @@ module Pegasus
         return self
       end
 
+      # Appends nothing to this chain. This is a no-op.
       def append!(other : Nil)
         return self
       end
     end
 
     class Nfa
+      # Applies the "+" operator to the given `StateChain`.
       private def nfa_plus(chain)
         if chain.start && chain.final
           new_final = state
@@ -37,6 +45,7 @@ module Pegasus
         end
       end
 
+      # Applies the "*" operator to the given `StateChain`.
       private def nfa_star(chain)
         if chain.start && chain.final
           new_final = state
@@ -51,6 +60,7 @@ module Pegasus
         end
       end
 
+      # Applies the "?" operator to the given `StateChain`.
       private def nfa_question(chain)
         if chain.start && chain.final
           new_final = state
@@ -64,6 +74,7 @@ module Pegasus
         end
       end
 
+      # Reas a character, taking into account the scape character.
       private def read_char(tokens)
         raise "Unexpected end of file"  unless tokens.first?
         char = tokens.delete_at(0)
@@ -75,6 +86,7 @@ module Pegasus
         return char.bytes[0]
       end
 
+      # Creates an NFA chain using the range syntax ([...])
       private def from_regex_range(tokens)
         tokens.delete_at(0)
         invert = false
@@ -107,6 +119,7 @@ module Pegasus
         return StateChain.new(start, final)
       end
 
+      # Parses a (sub)expression, optionally requiring parentheses.
       private def from_regex_expr(tokens, *, require_parenths = true)
         substring_stack = [] of StateChain
         current_chain = nil
@@ -180,6 +193,7 @@ module Pegasus
         return current_chain
       end
 
+      # Adds a regular expression branch to this Nfa.
       def add_regex(str, id)
         tokens = str.chars
         chain = from_regex_expr(tokens, require_parenths: false)

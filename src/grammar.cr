@@ -4,26 +4,40 @@ require "./pda.cr"
 
 module Pegasus
   module Pda
+    # A Grammar associated with the language, contianing a list of terminals,
+    # nonterminals, and the context-free production rules given by the `Item` class.
     class Grammar
-      property items : Array(Item)
-      property terminals : Array(Terminal)
-      property nonterminals : Array(Nonterminal)
+      # The items that belong to this grammar.
+      getter items : Array(Item)
+      # The terminals that belong to this grammar.
+      getter terminals : Array(Terminal)
+      # The nonterminals that belong to this grammar.
+      getter nonterminals : Array(Nonterminal)
 
+      # Initializes this grammar with the given terminals and nonterminals.
       def initialize(@terminals, @nonterminals)
-        @last_id = 0_i64
         @items = Array(Item).new
       end
 
+      # Checks if the given set contains the empty set. This is used for computing
+      # FIRST and lookahead sets when generating an (LA)LR automaton.
       private def contains_empty(set)
         return set.select(&.id.==(Terminal::SPECIAL_EMPTY)).size != 0
       end
 
+      # Concatenates a set with another set, and returns whether the size of the set
+      # has changed. This is useful for "closure algorithms" as described by
+      # Dick Grune and others in Modern Compiler Design. These algorithms apply
+      # a rule until the data no longer changes.
       private def concat_watching(set, other)
         initial_size = set.size
         set.concat other
         return initial_size != set.size
       end
 
+      # Computes the FIRST set of an alternative. The first sets hash is used
+      # for already computed first sets. The empty alternative is added elsewhere,
+      # and only contains the SPECIAL_EMPTY terminal.
       private def compute_alternative_first(first_sets, alternative)
         if !first_sets.has_key? alternative
           first = Set(Terminal).new
@@ -49,6 +63,8 @@ module Pegasus
         return concat_watching(first, add_first)
       end
 
+      # Computes the first set of every alternative or alternative tail of the given
+      # item body.
       private def compute_alternatives_first(first_sets, body)
         change_occured = false
         body.size.times do |time|
@@ -57,7 +73,10 @@ module Pegasus
         return change_occured
       end
 
-      def compute_first
+      # Computes the first sets of all the terminals, nonterminals, alternatives,
+      # and alternative tails by examining the items, terminals, and nonterminals given
+      # in `#initialize`
+      private def compute_first
         first_sets = Hash(Element | Array(Element), Set(Terminal)).new
         @terminals.each { |t| first_sets[t] = Set { t } }
         @nonterminals.each { |nt| first_sets[nt] = Set(Terminal).new }
@@ -75,6 +94,7 @@ module Pegasus
         return first_sets
       end
 
+      # Gets a lookahead set for the given alternative, using its parent lookahead set.
       private def get_lookahead(first_sets, alternative, old_lookahead)
         lookahead = first_sets[alternative].dup
         if contains_empty(lookahead)
@@ -84,11 +104,17 @@ module Pegasus
         return lookahead.to_set
       end
 
+      # Creates new dotted items that are to be added because the "dot" is on the left on a nonterminal
+      # in the parent dotted item. The suffix parameter describes all the tokens after the nonterminal,
+      # which is used for looking up in the FIRST set.
       private def create_dotted_items(first_sets, nonterminal, suffix, parent_lookahead)
           return @items.select(&.head.==(nonterminal))
                       .map { |it| LookaheadItem.new it, get_lookahead(first_sets, suffix, parent_lookahead) }
       end
 
+      # Creates new dotted items for every existing dotted item. This may be necessary if the "dot" moved
+      # and is now on the left hand of a Nonterminal, which warrants all the production rules for that nonterminal
+      # To be added to the current set (with their lookahead sets computed from scratch).
       private def new_dots(first_sets, dots)
         dots.map do |dot|
           next Set(LookaheadItem).new if dot.index >= dot.item.body.size
@@ -99,6 +125,7 @@ module Pegasus
         end
       end
 
+      # Creates all dotted items from the given list of "initial" dotted items.
       private def all_dots(first_sets, dots)
         found_dots = dots.to_set.dup
         while concat_watching(found_dots, new_dots(first_sets, found_dots))
@@ -112,7 +139,9 @@ module Pegasus
         return found_dots.to_set
       end
 
-      def get_transitions(dotted_items)
+      # Gets a set of shifted items for each possible shift-transition
+      # from the current state.
+      private def get_transitions(dotted_items)
         return dotted_items.compact_map do |dot|
             next nil unless dot.index < dot.item.body.size
             next { dot.item.body[dot.index], dot.next_item }
@@ -123,9 +152,12 @@ module Pegasus
         end
       end
 
+      # Converts an LR(1) PDA to an LALR(1) PDA by merging states with the corresponding bodies, and
+      # combining the lookahead sets of every matching item.
       def create_lalr_pda(lr_pda)
         lalr_pda = Pda.new @items
         groups = lr_pda.states.group_by { |s| s.data.map { |it| DottedItem.new it.item, it.index }.to_set }
+        # Since 2+ sets become one, we need to adjust transitions.
         states = Hash(typeof(lr_pda.states.first), typeof(lalr_pda.states.first)).new
         groups.each do |_, equal_states|
           item_groups = equal_states
@@ -141,6 +173,7 @@ module Pegasus
           end
         end
 
+        # Reconnect the new states.
         lr_pda.states.each do |state|
           new_state = states[state]
           state.transitions.each do |e, other|
@@ -151,6 +184,7 @@ module Pegasus
         return lalr_pda
       end
 
+      # Create an LR(1) PDA given a start symbol.
       def create_lr_pda(start)
         pda = Pda.new @items
         first_sets = compute_first
@@ -185,6 +219,7 @@ module Pegasus
         return pda
       end
 
+      # Add an item to the Grammar.
       def add_item(i)
         items << i
       end

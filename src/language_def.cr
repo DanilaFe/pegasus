@@ -215,7 +215,7 @@ module Pegasus
             parse_action_table: parse_action_table,
             terminals: terminals,
             nonterminals: nonterminals,
-            items: items.to_a)
+            items: items)
       end
 
       def from_string(string)

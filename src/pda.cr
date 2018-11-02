@@ -7,7 +7,7 @@ module Pegasus
     alias PState = State(Set(LookaheadItem), Element)
 
     class Pda < UniqueAutomaton(Set(LookaheadItem), Element)
-      def initialize(@items : Set(Item))
+      def initialize(@items : Array(Item))
         super()
       end
     end

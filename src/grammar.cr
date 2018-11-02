@@ -5,13 +5,13 @@ require "./pda.cr"
 module Pegasus
   module Pda
     class Grammar
-      property items : Set(Item)
+      property items : Array(Item)
       property terminals : Array(Terminal)
       property nonterminals : Array(Nonterminal)
 
       def initialize(@terminals, @nonterminals)
         @last_id = 0_i64
-        @items = Set(Item).new
+        @items = Array(Item).new
       end
 
       private def contains_empty(set)
@@ -157,7 +157,7 @@ module Pegasus
         # Set of items starting with the start nonterminal
         start_items = @items.select(&.head.==(start)).map do |it|
             LookaheadItem.new it, Set { Terminal.new(Terminal::SPECIAL_EOF) }
-        end.to_set
+        end
         # Set of all current dotted items
         all_start_items = all_dots(first_sets,  start_items)
         start_state = pda.state_for data: all_start_items

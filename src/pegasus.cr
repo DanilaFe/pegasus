@@ -11,6 +11,6 @@ end
 grammar = STDIN.gets_to_end
 
 data = Pegasus::Language::LanguageDefinition
-    .new(grammar)
-    .generate
+  .new(grammar)
+  .generate
 data.to_json(STDOUT)

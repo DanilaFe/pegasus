@@ -1,3 +1,7 @@
+require "./nfa.cr"
+require "./pda.cr"
+require "./error.cr"
+
 module Pegasus
   module Dfa
     class Dfa
@@ -23,6 +27,16 @@ module Pegasus
 
   module Pda
     class Pda
+      private def check_conflict(action_table, state_index, index, shifting)
+        current_value = action_table[state_index][index]
+        if shifting
+          raise_table "Shift / reduce conflict" if current_value > 0
+        else
+          raise_table "Shift / reduce conflict" if current_value == 0
+          raise_table "Reduce / reduce conflict" if current_value > 0
+        end
+      end
+
       # Creates an action table, determing what the parser should do
       # at the given state and the lookhead token.
       def action_table
@@ -39,11 +53,14 @@ module Pegasus
           end
           done_items.each do |item|
             item.lookahead.each do |terminal|
+              check_conflict(table, state.id + 1, terminal.id + 1, shifting: false)
               table[state.id + 1][terminal.id + 1] = @items.index(item.item).not_nil!.to_i64 + 1
             end
           end
           shiftable_items.each do |item|
-            table[state.id + 1][item.item.body[item.index].as(Terminal).id + 1] = 0
+            terminal = item.item.body[item.index].as(Terminal)
+            check_conflict(table, state.id + 1, terminal.id + 1, shifting: true)
+            table[state.id + 1][terminal.id + 1] = 0
           end
         end
 

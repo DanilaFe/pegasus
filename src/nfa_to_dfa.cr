@@ -1,5 +1,6 @@
 require "./nfa.cr"
 require "./dfa.cr"
+require "./error.cr"
 
 module Pegasus
   module Nfa
@@ -62,7 +63,7 @@ module Pegasus
 
       # Creates a `Pegasus::Dfa::Dfa` for this Nfa.
       def dfa
-        raise "NFA doesn't have start state" unless @start
+        raise_dfa "NFA doesn't have start state" unless @start
 
         # DFA we're constructing
         new_dfa = Pegasus::Dfa::Dfa.new

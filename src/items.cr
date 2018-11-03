@@ -1,4 +1,5 @@
 require "./elements.cr"
+require "./error.cr"
 
 module Pegasus
   module Pda
@@ -68,7 +69,7 @@ module Pegasus
         if @index < @item.body.size
           @index += 1 
         else
-          raise "Reached past the end of the item!"
+          raise_pda "Reached past the end of the item!", internal: true
         end
       end
 

@@ -1,3 +1,6 @@
+require "./nfa.cr"
+require "./error.cr"
+
 module Pegasus
   module Nfa
     # A "unit" of one or more connected states.
@@ -76,13 +79,13 @@ module Pegasus
 
       # Reas a character, taking into account the scape character.
       private def read_char(tokens)
-        raise "Unexpected end of file"  unless tokens.first?
+        raise_nfa "Unexpected end of file"  unless tokens.first?
         char = tokens.delete_at(0)
         if char == '\\'
-          raise "Invalid escape character" unless tokens.first?
+          raise_nfa "Invalid escape character" unless tokens.first?
           char = tokens.delete_at(0)
         end
-        raise "Non-ASCII characters not supported" unless char.ascii?
+        raise_nfa "Non-ASCII characters not supported" unless char.ascii?
         return char.bytes[0]
       end
 
@@ -100,7 +103,7 @@ module Pegasus
 
         while tokens.first? && tokens.first != ']'
           if tokens.first == '-'
-            raise "Invalid range" unless last_char
+            raise_nfa "Invalid range" unless last_char
             tokens.delete_at(0)
             ranges << (last_char..read_char(tokens))
             last_char = nil
@@ -110,7 +113,7 @@ module Pegasus
           end
         end
 
-        raise "Invalid range definition" if tokens.first? != ']'
+        raise_nfa "Invalid range definition" if tokens.first? != ']'
         tokens.delete_at(0)
 
         start = state
@@ -140,7 +143,7 @@ module Pegasus
 
           if modifier = modifiers[char]?
             tokens.delete_at(0)
-            raise "Invalid operator" unless sub_chain
+            raise_nfa "Invalid operator" unless sub_chain
             modifier.call(sub_chain)
             next
           end
@@ -176,7 +179,7 @@ module Pegasus
         if require_parenths && tokens.first? == ')'
           tokens.delete_at(0)
         elsif (require_parenths ^ (tokens.first? == ')'))
-          raise "Mismatched parentheses"
+          raise_nfa "Mismatched parentheses"
         end
 
         if substring_stack.size > 0

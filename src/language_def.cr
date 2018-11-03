@@ -5,6 +5,7 @@ require "./nfa.cr"
 require "./regex.cr"
 require "./nfa_to_dfa.cr"
 require "./table.cr"
+require "./error.cr"
 
 module Pegasus
   module Language
@@ -282,17 +283,17 @@ module Pegasus
           when ParseState::ParseHead
             pop_while chars, &.ascii_whitespace?
             current_head = read_name chars
-            raise "Missing production left hand side" unless current_head.size > 0
+            raise_grammar "Missing production left hand side" unless current_head.size > 0
             state = ParseState::ParseEquals
           when ParseState::ParseEquals
             pop_while chars, &.ascii_whitespace?
-            raise "Missing equal sign in production" unless chars.last? == '='
+            raise_grammar "Missing equal sign in production" unless chars.last? == '='
             chars.pop
             state = ParseState::ParseBody
           when ParseState::ParseBody
             pop_while chars, &.ascii_whitespace?
             char = chars.pop?
-            "Missing terminating semicolon" unless char
+            raise_grammar "Missing terminating semicolon" unless char
 
             if char == '"'
               acc = ""
@@ -305,7 +306,7 @@ module Pegasus
                 acc += string_char
                 next true
               end
-              raise "Missing terminating quotation mark in regular expression" unless chars.last? == '"'
+              raise_grammar "Missing terminating quotation mark in regular expression" unless chars.last? == '"'
               chars.pop
 
               current_body << TerminalRegex.new acc

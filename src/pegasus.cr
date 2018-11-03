@@ -1,16 +1,12 @@
 require "./language_def.cr"
 require "./json.cr"
+require "./error.cr"
 
-# TODO: Write documentation for `Pegasus`
-module Pegasus
-  VERSION = "0.1.0"
-
-  # TODO: Put your code here
+begin
+  grammar = STDIN.gets_to_end
+  data = Pegasus::Language::LanguageDefinition.new(grammar).generate
+  data.to_json(STDOUT)
+rescue e : Pegasus::Error::PegasusError
+  e.to_s(STDERR)
 end
 
-grammar = STDIN.gets_to_end
-
-data = Pegasus::Language::LanguageDefinition
-  .new(grammar)
-  .generate
-data.to_json(STDOUT)

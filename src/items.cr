@@ -65,7 +65,11 @@ module Pegasus
 
       # Turns this item into the next item assuming a shift took place.
       def next_item!
-        @index += 1 if @index < @item.body.size
+        if @index < @item.body.size
+          @index += 1 
+        else
+          raise "Reached past the end of the item!"
+        end
       end
 
       # Creates a new item assuming a shift took place.

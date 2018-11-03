@@ -278,20 +278,21 @@ module Pegasus
           case state
           when ParseState::Base
             pop_while chars, &.ascii_whitespace?
-            state = ParseState::ParseHead
+            state = ParseState::ParseHead if chars.last?
           when ParseState::ParseHead
             pop_while chars, &.ascii_whitespace?
             current_head = read_name chars
+            raise "Missing production left hand side" unless current_head.size > 0
             state = ParseState::ParseEquals
           when ParseState::ParseEquals
             pop_while chars, &.ascii_whitespace?
-            raise "Invalid grammar declaration" unless chars.last? == '='
+            raise "Missing equal sign in production" unless chars.last? == '='
             chars.pop
             state = ParseState::ParseBody
           when ParseState::ParseBody
             pop_while chars, &.ascii_whitespace?
             char = chars.pop?
-            next unless char
+            "Missing terminating semicolon" unless char
 
             if char == '"'
               acc = ""
@@ -299,12 +300,12 @@ module Pegasus
                 next false if string_char == '"'
                 if string_char == '\\'
                   string_char = chars.pop?
-                  raise "Invalid escape code!" unless string_char
+                  raise "Invalid escape code" unless string_char
                 end
                 acc += string_char
                 next true
               end
-              raise "Invalid grammar declaration" unless chars.last? == '"'
+              raise "Missing terminating quotation mark in regular expression" unless chars.last? == '"'
               chars.pop
 
               current_body << TerminalRegex.new acc
@@ -318,8 +319,10 @@ module Pegasus
               current_alternatives = [] of Array(TerminalRegex | NonterminalName)
               state = ParseState::Base
             else
-              chars.push char
-              current_body << NonterminalName.new read_name(chars)
+              chars.push char.not_nil!
+              name = read_name(chars)
+              next unless name.size > 0
+              current_body << NonterminalName.new name
             end
           end
         end

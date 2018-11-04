@@ -9,6 +9,8 @@ targets:
     main: src/pegasus.cr
   pegasus-dot:
     main: src/pegasus-dot.cr
+  pegasus-sim:
+    main: src/pegasus-sim.cr
 
 crystal: 0.26.1
 

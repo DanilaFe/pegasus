@@ -37,15 +37,126 @@ module Pegasus
       getter max_terminal : Int64
 
       # Creates a new language data object.
-      def initialize(*,
-                     @lex_state_table,
-                     @lex_final_table,
-                     @parse_state_table,
-                     @parse_action_table,
-                     @terminals,
-                     @nonterminals,
-                     @items)
+      def initialize(language_definition)
+        @terminals, @nonterminals, grammar =
+          generate_grammar(language_definition.declarations)
+        @lex_state_table, @lex_final_table, @parse_state_table, @parse_action_table =
+          generate_tables(@terminals, @nonterminals, grammar)
         @max_terminal = @terminals.values.max_of?(&.id) || 0_i64
+        @items = grammar.items
+      end
+
+      # Gets a key from a hash, and if the key doesn't exist, generates it using the block.
+      private def hash_get(hash, key, &block)
+        if hash.has_key? key
+          return hash[key]
+        end
+
+        return (hash[key] = yield key)
+      end
+
+      # Creates an entry for the given nonterminal name in the hash,
+      # unless one exists.
+      private def visit_nonterminal(id, hash, name)
+        hash_get(hash, name) do
+          id += 1
+          Pegasus::Pda::Nonterminal.new (id - 1)
+        end
+        return id
+      end
+
+      # Creates an entry for the given terminal name in the hash,
+      # unless one exists.
+      private def visit_terminal(id, hash, name)
+        hash_get(hash, name) do
+          id += 1
+          Pegasus::Pda::Terminal.new (id - 1)
+        end
+        return id
+      end
+
+      # Finds all the nonterminals in the list of declarations.
+      private def find_nonterminals(declarations)
+        nonterminal_id = 0_i64
+        nonterminals = {} of String => Pegasus::Pda::Nonterminal
+
+        declarations.each do |decl|
+          nonterminal_id = visit_nonterminal(nonterminal_id, nonterminals, decl.head)
+          decl.bodies.each do |body|
+            body
+              .select(&.is_a?(NonterminalName))
+              .map(&.as(NonterminalName).name).each do |elem|
+              nonterminal_id = visit_nonterminal(nonterminal_id, nonterminals, elem)
+            end
+          end
+        end
+        return nonterminals
+      end
+
+      # Finds all the terminals in the list of declarations.
+      private def find_terminals(declarations)
+        terminal_id = 0_i64
+        terminals = {} of String => Pegasus::Pda::Terminal
+
+        declarations.each do |decl|
+          decl.bodies.each do |body|
+            body
+              .select(&.is_a?(TerminalRegex))
+              .map(&.as(TerminalRegex).regex).each do |elem|
+              terminal_id = visit_terminal(terminal_id, terminals, elem)
+            end
+          end
+        end
+        return terminals
+      end
+
+      # Creates a grammar, returning it and the hashes with identifiers for
+      # the terminals and nonterminals.
+      private def generate_grammar(declarations)
+        nonterminals = find_nonterminals declarations
+        terminals = find_terminals declarations
+        items = [] of Pegasus::Pda::Item
+        declarations.each do |decl|
+          item_head = nonterminals[decl.head]
+          decl.bodies.each do |body|
+            item_body = body.map do |elem|
+              case elem
+              when NonterminalName
+                next nonterminals[elem.name]
+              when TerminalRegex
+                next terminals[elem.regex]
+              end
+            end.map(&.not_nil!)
+
+            items << Pegasus::Pda::Item.new item_head, item_body
+          end
+        end
+
+        grammar = Pegasus::Pda::Grammar.new(terminals.values, nonterminals.values)
+        items.each do |i|
+          grammar.add_item i
+        end
+
+        return { terminals, nonterminals, grammar }
+      end
+
+      # Generates lookup tables using the given terminals, nonterminals,
+      # and grammar.
+      private def generate_tables(terminals, nonterminals, grammar)
+        nfa = Pegasus::Nfa::Nfa.new
+        terminals.each do |regex, value|
+          nfa.add_regex regex, value.id
+        end
+        dfa = nfa.dfa
+        lex_state_table = dfa.state_table
+        lex_final_table = dfa.final_table
+
+        lr_pda = grammar.create_lr_pda(nonterminals.values.find { |it| it.id == 0 })
+        lalr_pda = grammar.create_lalr_pda(lr_pda)
+        parse_state_table = lalr_pda.state_table
+        parse_action_table = lalr_pda.action_table
+
+        return { lex_state_table, lex_final_table, parse_state_table, parse_action_table }
       end
     end
 
@@ -111,9 +222,10 @@ module Pegasus
       end
     end
 
-
     # A language definition parsed from a grammar string.
     class LanguageDefinition
+      getter declarations = [] of Declaration
+
       # Creates a new, empty language definition.
       def initialize
         @declarations = [] of Declaration
@@ -147,125 +259,6 @@ module Pegasus
          next true
         end
         return acc
-      end
-
-      # Gets a key from a hash, and if the key doesn't exist, generates it using the block.
-      private def hash_get(hash, key, &block)
-        if hash.has_key? key
-          return hash[key]
-        end
-
-        return (hash[key] = yield key)
-      end
-
-      # Creates an entry for the given nonterminal name in the hash,
-      # unless one exists.
-      private def visit_nonterminal(id, hash, name)
-        hash_get(hash, name) do
-          id += 1
-          Pegasus::Pda::Nonterminal.new (id - 1)
-        end
-        return id
-      end
-
-      # Creates an entry for the given terminal name in the hash,
-      # unless one exists.
-      private def visit_terminal(id, hash, name)
-        hash_get(hash, name) do
-          id += 1
-          Pegasus::Pda::Terminal.new (id - 1)
-        end
-        return id
-      end
-
-      # Finds all the nonterminals in the list of declarations.
-      private def find_nonterminals
-        nonterminal_id = 0_i64
-        nonterminals = {} of String => Pegasus::Pda::Nonterminal
-
-        @declarations.each do |decl|
-          nonterminal_id = visit_nonterminal(nonterminal_id, nonterminals, decl.head)
-          decl.bodies.each do |body|
-            body
-              .select(&.is_a?(NonterminalName))
-              .map(&.as(NonterminalName).name).each do |elem|
-              nonterminal_id = visit_nonterminal(nonterminal_id, nonterminals, elem)
-            end
-          end
-        end
-        return nonterminals
-      end
-
-      # Finds all the terminals in the list of declarations.
-      private def find_terminals
-        terminal_id = 0_i64
-        terminals = {} of String => Pegasus::Pda::Terminal
-
-        @declarations.each do |decl|
-          decl.bodies.each do |body|
-            body
-              .select(&.is_a?(TerminalRegex))
-              .map(&.as(TerminalRegex).regex).each do |elem|
-              terminal_id = visit_terminal(terminal_id, terminals, elem)
-            end
-          end
-        end
-        return terminals
-      end
-
-      # Creates a grammar, returning it and the hashes with identifiers for
-      # the terminals and nonterminals.
-      private def generate_grammar
-        nonterminals = find_nonterminals
-        terminals = find_terminals
-        items = [] of Pegasus::Pda::Item
-        @declarations.each do |decl|
-          item_head = nonterminals[decl.head]
-          decl.bodies.each do |body|
-            item_body = body.map do |elem|
-              case elem
-              when NonterminalName
-                next nonterminals[elem.name]
-              when TerminalRegex
-                next terminals[elem.regex]
-              end
-            end.map(&.not_nil!)
-
-            items << Pegasus::Pda::Item.new item_head, item_body
-          end
-        end
-
-        grammar = Pegasus::Pda::Grammar.new(terminals.values, nonterminals.values)
-        items.each do |i|
-          grammar.add_item i
-        end
-
-        return { terminals, nonterminals, grammar }
-      end
-
-      # Generates a `LanguageData` object, thereby completing the task of Pegasus.
-      def generate
-        terminals, nonterminals, grammar = generate_grammar
-        nfa = Pegasus::Nfa::Nfa.new
-        terminals.each do |regex, value|
-          nfa.add_regex regex, value.id
-        end
-        dfa = nfa.dfa
-        lex_state_table = dfa.state_table
-        lex_final_table = dfa.final_table
-        items = grammar.items
-        lr_pda = grammar.create_lr_pda(nonterminals.values.find { |it| it.id == 0 })
-        lalr_pda = grammar.create_lalr_pda(lr_pda)
-        parse_state_table = lalr_pda.state_table
-        parse_action_table = lalr_pda.action_table
-        return LanguageData.new(
-            lex_state_table: lex_state_table,
-            lex_final_table: lex_final_table,
-            parse_state_table: parse_state_table,
-            parse_action_table: parse_action_table,
-            terminals: terminals,
-            nonterminals: nonterminals,
-            items: items)
       end
 
       # Creates a language definition from a string.

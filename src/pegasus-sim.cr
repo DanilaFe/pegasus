@@ -103,8 +103,8 @@ while index < to_parse.size
     if (final = data.lex_final_table[state]) != 0
       last_final = final
       last_final_index = index
-      index += 1
     end
+    index += 1 if state != 0
   end
 
   break if last_final == -1

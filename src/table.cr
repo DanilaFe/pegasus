@@ -42,7 +42,7 @@ module Pegasus
       def action_table
         max_terminal = @items.max_of? do |item|
           item.body.select(&.is_a?(Terminal)).max_of?(&.id) || 0_i64
-        end || 0_i64
+        end || -1_i64
 
         # +1 for potential -1, +1 since terminal IDs start at 0.
         table = Array.new(@states.size + 1) { Array.new(max_terminal + 1 + 1, -1_i64) }
@@ -70,12 +70,12 @@ module Pegasus
       # Creates a transition table that is indexed by both Terminals and Nonterminals.
       def state_table
         max_terminal = @items.max_of? do |item|
-          item.body.select(&.is_a?(Terminal)).max_of?(&.id) || 0_i64
-        end || 0_i64
+          item.body.select(&.is_a?(Terminal)).max_of?(&.id) || -1_i64
+        end || -1_i64
 
         max_nonterminal = @items.max_of? do |item|
-          Math.max(item.head.id, item.body.select(&.is_a?(Nonterminal)).max_of?(&.id) || 0_i64)
-        end || 0_i64
+          Math.max(item.head.id, item.body.select(&.is_a?(Nonterminal)).max_of?(&.id) || -1_i64)
+        end || -1_i64
 
         # +1 for potential -1 in terminal, +1 + 1 because both terminal and nonterminals start at 0.
         table = Array.new(@states.size + 1) { Array.new(max_nonterminal + max_terminal + 1 + 1 + 1, 0_i64) }

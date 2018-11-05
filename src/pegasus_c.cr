@@ -7,7 +7,7 @@ module Pegasus
   module Language
     class LanguageData
       def output(io)
-        ECR.embed "src/pegasus-c-template.ecr", io
+        ECR.embed "src/pegasus_c_template.ecr", io
       end
     end
   end

@@ -134,7 +134,7 @@ pgs_error pgs_do_lex(pgs_state* s, pgs_token_list* list, const char* source) {
         state = 1;
 
         while(index < length && state) {
-            state = lexer_state_table[state][source[index]];
+            state = lexer_state_table[state][(unsigned int) source[index]];
 
             if((final = lexer_final_table[state])) {
                 last_final = final;
@@ -316,7 +316,6 @@ pgs_error pgs_parse_stack_append_terminal(pgs_parse_stack* s, pgs_token* t) {
 }
 
 pgs_error pgs_parse_stack_append_nonterminal(pgs_parse_stack* s, long int id, size_t count) {
-    pgs_error error;
     size_t i;
     long int state;
     pgs_tree** child_array;

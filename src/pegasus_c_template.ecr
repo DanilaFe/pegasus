@@ -1,9 +1,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Generate: Token ID to item kind */
-/* Generate: Item kind to string */
-/* Generate: Item kind defines (for ==) */
+/* == Nonterminals to String == */
+const char* pgs_nonterminal_name(long int nt) {
+    switch(nt) {
+        <%- @nonterminals.each do |name, value| -%>
+        case PGS_NONTERMINAL_<%= name.underscore.upcase %>: return <%= name.dump %>;
+        <%- end -%>
+        default: return "";
+    }
+}
 
 /* == Generated Tables and Variables== */
 
@@ -172,9 +178,9 @@ void pgs_free_tree_terminal(pgs_tree* t) {
 long int pgs_tree_table_index(pgs_tree* t) {
     switch(t->variant) {
         case PGS_TREE_TERMINAL:
-            return t->tree_data.terminal.token.terminal;
+            return PGS_TREE_T(*t);
         case PGS_TREE_NONTERMINAL: 
-            return t->tree_data.nonterminal.nonterminal + 2 + PGS_MAX_TERMINAL;
+            return PGS_TREE_NT(*t) + 2 + PGS_MAX_TERMINAL;
     }
 }
 

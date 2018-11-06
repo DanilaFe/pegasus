@@ -1,6 +1,17 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* == Nonterminal ID Definitions == */
+<% @nonterminals.each do |name, value| -%>
+#define PGS_NONTERMINAL_<%= name.underscore.upcase %> <%= value.id %>
+<% end -%>
+
+#define PGS_TREE_T(tree) ((tree).tree_data.terminal.token.terminal)
+#define PGS_TREE_NT(tree) ((tree).tree_data.nonterminal.nonterminal)
+#define PGS_TREE_IS_NT(tree, type) (((tree).variant == PGS_TREE_NONTERMINAL) && (PGS_TREE_NT(tree) == (type)))
+
+const char* pgs_nonterminal_name(long int nt);
+
 /* == Generated Data Definitions == */
 struct pgs_item_s {
     long int left_id;

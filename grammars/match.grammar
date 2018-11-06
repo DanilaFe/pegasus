@@ -1,0 +1,10 @@
+S = any;
+any = parenths any
+    | square_brackets any
+    | brackets any
+    | parenths
+    | square_brackets
+    | brackets;
+parenths = "\\(" any "\\)" | "\\(\\)";
+square_brackets = "\\[" any "\\]" | "\\[\\]";
+brackets = "{" any "}" | "{}";

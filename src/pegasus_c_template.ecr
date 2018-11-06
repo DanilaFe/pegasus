@@ -71,7 +71,7 @@ pgs_error pgs_token_list_append(pgs_token_list* l, long int terminal, size_t fro
 
     l->tokens[l->token_count].terminal = terminal;
     l->tokens[l->token_count].from = from;
-    l->tokens[l->token_count].to = to;
+    l->tokens[l->token_count].to = to + 1;
     l->token_count++;
 
     return PGS_NONE;

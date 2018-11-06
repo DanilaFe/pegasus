@@ -4,10 +4,6 @@
 /* Generate: Token ID to item kind */
 /* Generate: Item kind to string */
 /* Generate: Item kind defines (for ==) */
-struct pgs_item_s {
-    long int left_id;
-    size_t right_count;
-};
 
 /* == Generated Tables and Variables== */
 
@@ -30,36 +26,13 @@ long int parse_action_table[<%= @parse_action_table.size %>][<%= @parse_action_t
     { <% state.each do |action| %><%= action %>, <% end %> },
 <% end -%>
 };
-struct pgs_item_s items[<%= @items.size %>] = {
+pgs_item items[<%= @items.size %>] = {
 <% @items.each do |item| -%>
     { <%= item.head.id %>, <%= item.body.size %> },
 <% end -%>
 };
 
-
-/* == General Definitions == */
-#define PGS_MAX_ERROR_LENGTH 255
-
-enum pgs_error_e {
-    PGS_NONE = 0,
-    PGS_MALLOC,
-    PGS_BAD_CHARACTER,
-    PGS_BAD_TOKEN,
-    PGS_EOF_SHIFT
-};
-
-struct pgs_state_s {
-    enum pgs_error_e error;
-    char errbuff[PGS_MAX_ERROR_LENGTH];
-};
-
-typedef enum pgs_error_e pgs_error;
-typedef struct pgs_state_s pgs_state;
-
-void pgs_state_init(pgs_state* s);
-void pgs_state_error(pgs_state* s, pgs_error, const char* message);
-
-/* == General Code */
+/* == General Code == */
 
 void pgs_state_init(pgs_state* s) {
     s->error = PGS_NONE;
@@ -71,28 +44,7 @@ void pgs_state_error(pgs_state* s, pgs_error e, const char* message) {
     strncpy(s->errbuff, message, PGS_MAX_ERROR_LENGTH);
 }
 
-/* == Lexing Definitions ==*/
-
-struct pgs_token_s {
-    long int terminal;
-    size_t from;
-    size_t to;
-};
-
-struct pgs_token_list_s {
-    size_t capacity;
-    size_t token_count;
-    struct pgs_token_s* tokens;
-};
-
-typedef struct pgs_token_s pgs_token;
-typedef struct pgs_token_list_s pgs_token_list;
-
-pgs_error pgs_token_list_init(pgs_token_list* l);
-pgs_error pgs_token_list_append(pgs_token_list* l, long int terminal, size_t from, size_t to);
-pgs_token* pgs_token_list_at(pgs_token_list* l, size_t i);
-pgs_error pgs_token_list_at_id(pgs_token_list* l, size_t i );
-void pgs_token_list_free(pgs_token_list* l);
+/* == Lexing Code == */
 
 pgs_error pgs_token_list_init(pgs_token_list* l) {
     l->capacity = 8;
@@ -174,64 +126,6 @@ pgs_error pgs_do_lex(pgs_state* s, pgs_token_list* list, const char* source) {
 
     return PGS_NONE;
 }
-
-/* == Parsing Definitions == */
-
-enum pgs_tree_variant_e {
-    PGS_TREE_TERMINAL,
-    PGS_TREE_NONTERMINAL
-};
-
-struct pgs_tree_terminal_s {
-    pgs_token token;
-};
-
-struct pgs_tree_nonterminal_s {
-    long int nonterminal;
-    size_t child_count;
-    struct pgs_tree_s** children;
-};
-
-struct pgs_tree_s {
-    enum pgs_tree_variant_e variant;
-    union {
-        struct pgs_tree_terminal_s terminal;
-        struct pgs_tree_nonterminal_s nonterminal;
-    } tree_data;
-};
-
-struct pgs_parse_stack_element_s {
-    struct pgs_tree_s* tree;
-    long int state;
-};
-
-struct pgs_parse_stack_s {
-    size_t capacity;
-    size_t size;
-    struct pgs_parse_stack_element_s* data;
-};
-
-typedef enum pgs_tree_variant_e pgs_tree_variant;
-typedef struct pgs_tree_terminal_s pgs_tree_terminal;
-typedef struct pgs_tree_nontermnal_s pgs_tree_nonterminal;
-typedef struct pgs_tree_s pgs_tree;
-typedef struct pgs_parse_stack_element_s pgs_parse_stack_element;
-typedef struct pgs_parse_stack_s pgs_parse_stack;
-
-pgs_tree* pgs_create_tree_nonterminal(long int nonterminal, size_t child_count);
-pgs_tree* pgs_create_tree_terminal(pgs_token* t);
-void pgs_free_tree_nonterminal(pgs_tree* tree);
-void pgs_free_tree_terminal(pgs_tree* tree);
-long int pgs_tree_table_index(pgs_tree* tree);
-void pgs_free_tree(pgs_tree* tree);
-
-pgs_error pgs_parse_stack_init(pgs_parse_stack* s);
-pgs_error pgs_parse_stack_append(pgs_parse_stack* s, pgs_tree* tree, long int state);
-pgs_error pgs_parse_stack_append_terminal(pgs_parse_stack* s, pgs_token* t);
-pgs_error pgs_parse_stack_append_nonterminal(pgs_parse_stack* s, long int id, size_t count);
-long int pgs_parse_stack_top_state(pgs_parse_stack* s);
-pgs_tree* pgs_parse_stack_top_tree(pgs_parse_stack* s);
-void pgs_parse_stack_free(pgs_parse_stack* s);
 
 /* == Parsing Code == */
 
@@ -447,15 +341,4 @@ pgs_error pgs_do_all(pgs_state* state, pgs_tree** into, const char* string) {
     }
     pgs_token_list_free(&tokens);
     return error;
-}
-
-int main(int argc, char** argv) {
-    pgs_state state;
-    pgs_tree* tree;
-    pgs_do_all(&state, &tree, "3+3");
-    if(state.error) {
-        printf("%s\n", state.errbuff);
-    } else {
-        pgs_free_tree(tree);
-    }
 }

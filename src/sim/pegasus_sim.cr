@@ -1,5 +1,5 @@
-require "./language_def.cr"
-require "./json.cr"
+require "../pegasus/language_def.cr"
+require "../pegasus/json.cr"
 require "option_parser"
 
 class Token

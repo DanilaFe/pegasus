@@ -1,6 +1,6 @@
-require "./language_def.cr"
-require "./json.cr"
-require "./error.cr"
+require "./pegasus/language_def.cr"
+require "./pegasus/json.cr"
+require "./pegasus/error.cr"
 
 begin
   grammar = STDIN.gets_to_end

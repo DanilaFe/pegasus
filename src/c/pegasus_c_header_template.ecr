@@ -10,11 +10,26 @@
 #define PGS_TREE_NT(tree) ((tree).tree_data.nonterminal.nonterminal)
 #define PGS_TREE_IS_NT(tree, type) (((tree).variant == PGS_TREE_NONTERMINAL) && (PGS_TREE_NT(tree) == (type)))
 
+/**
+ * Converts a nonterminal value to a string.
+ * @param nt the nonterminal ID.
+ * @return the name for the nonterminal.
+ */
 const char* pgs_nonterminal_name(long int nt);
 
 /* == Generated Data Definitions == */
+/**
+ * A grammar item. A lot of the information collected by the parser
+ * generate is not carried into the source code, which leaves items
+ * as simply a nonterminal ID and the size of the right hand side.
+ */
 struct pgs_item_s {
+    /** The nonterminal that this item is reduced to. */
     long int left_id;
+    /**
+     * The size of the item body, used to pop off
+     * the correct number of states from the stack.
+     */
     size_t right_count;
 };
 
@@ -23,80 +38,198 @@ typedef struct pgs_item_s pgs_item;
 /* == General Definitions == */
 #define PGS_MAX_ERROR_LENGTH 255
 
+/**
+ * The types of errors that can occur while the
+ * entire parsing process.
+ */
 enum pgs_error_e {
+    /** No error occured. */
     PGS_NONE = 0,
+    /** An allocation failed. */
     PGS_MALLOC,
+    /** A token couldn't be recognized. */
     PGS_BAD_CHARACTER,
+    /** A tree couldn't be recognized.  */
     PGS_BAD_TOKEN,
+    /** End of file reached where it was not expected */
     PGS_EOF_SHIFT
 };
 
+/**
+ * State used to report errors and their corresponding
+ * messages.
+ */
 struct pgs_state_s {
+    /** The error code. */
     enum pgs_error_e error;
+    /** The error message. */
     char errbuff[PGS_MAX_ERROR_LENGTH];
 };
 
 typedef enum pgs_error_e pgs_error;
 typedef struct pgs_state_s pgs_state;
 
+/**
+ * Initializes a state with no error.
+ * @param s the state to initialize.
+ */
 void pgs_state_init(pgs_state* s);
-void pgs_state_error(pgs_state* s, pgs_error, const char* message);
+/**
+ * Sets the state to have an error.
+ * @param s the state to initialize.
+ * @param err the error message to return.
+ */
+void pgs_state_error(pgs_state* s, pgs_error err, const char* message);
 
 /* == Lexing Definitions ==*/
+/**
+ * A token produced by lexing.
+ */
 struct pgs_token_s {
+    /** The ID of the terminal. */
     long int terminal;
+    /** The index at which the token starts. */
     size_t from;
+    /** The index at which the next token begins. */
     size_t to;
 };
 
+/**
+ * A dynamic list of tokens produced while lexing.
+ */
 struct pgs_token_list_s {
+    /** The size of the currently allocated block of tokens */
     size_t capacity;
+    /** The number of tokens in the list. */
     size_t token_count;
+    /** The token data array. */
     struct pgs_token_s* tokens;
 };
 
 typedef struct pgs_token_s pgs_token;
 typedef struct pgs_token_list_s pgs_token_list;
 
+/**
+ * Initializes a token list.
+ * @param l the list to initialize.
+ * @return any errors that occured while initializing the list.
+ */
 pgs_error pgs_token_list_init(pgs_token_list* l);
+/**
+ * Appends a token to the list.
+ * @param terminal the ID of the terminal to append.
+ * @param from the index at which the token begins.
+ * @param to the index at which the next token begins.
+ */
 pgs_error pgs_token_list_append(pgs_token_list* l, long int terminal, size_t from, size_t to);
+/**
+ * Returns a token at the given index.
+ * @param l the list to return a token from.
+ * @param i the index from which to return a token.
+ * @return a token, or NULL if the index is out of bounds.
+ */
 pgs_token* pgs_token_list_at(pgs_token_list* l, size_t i);
+/**
+ * Returns a token ID at the given index.
+ * @param l the list to return an ID from.
+ * @param i the index from which to return an ID.
+ * @return returns an ID, or 0, which represents EOF.
+ */
 pgs_error pgs_token_list_at_id(pgs_token_list* l, size_t i );
+/**
+ * Frees a list of tokens. Since the tokens are owned by the list,
+ * they are invalidated after this call too.
+ * @param l the list to free.
+ */
 void pgs_token_list_free(pgs_token_list* l);
+/**
+ * Performs a lexing operation.
+ * @param s the state to populate with error text, if necessary.
+ * @param list the list of tokens to initialize and populate.
+ * @param source the string to lex.
+ * @return the error, if any, that occured during this process.
+ */
 pgs_error pgs_do_lex(pgs_state* s, pgs_token_list* list, const char* source);
 
 /* == Parsing Definitions == */
+/**
+ *  Enum that represents the variant of a parse tree,
+ *  which is either a nonterminal with chilren, or a 
+ *  terminal with a token.
+ */
 enum pgs_tree_variant_e {
     PGS_TREE_TERMINAL,
     PGS_TREE_NONTERMINAL
 };
 
+/**
+ * The data of a terminal tree.
+ */
 struct pgs_tree_terminal_s {
+    /** The token this tree holds. */
     pgs_token token;
 };
 
+/**
+ * The data of a nonterminal tree.
+ */
 struct pgs_tree_nonterminal_s {
+    /**
+     * The nonterminal ID.
+     */
     long int nonterminal;
+    /**
+     * The number of children this tree has.
+     */
     size_t child_count;
+    /**
+     * The array of child pointers, allocated dynamically
+     * depending on the item that reduced to this nonterminal.
+     */
     struct pgs_tree_s** children;
 };
 
+/**
+ * A general struct for a tree, which is either a terminal
+ * or a nonterminal.
+ */
 struct pgs_tree_s {
+    /** The variant of the tree. */
     enum pgs_tree_variant_e variant;
     union {
+        /** The terminal variant of this tree. */
         struct pgs_tree_terminal_s terminal;
+        /** The nonterminal variant of this tree. */
         struct pgs_tree_nonterminal_s nonterminal;
     } tree_data;
 };
 
+/**
+ * An element on the parse stack, which holds
+ * both a tree node and a state. In theory,
+ * the stack is actually items followed by states,
+ * but since one always comes after the other,
+ * and since both need to be looked up fast,
+ * we put them on a stack in parallel.
+ */
 struct pgs_parse_stack_element_s {
+    /** The tree on the stack */
     struct pgs_tree_s* tree;
+    /** The state on the stack */
     long int state;
 };
 
+/**
+ * A parse stack. The PDA automaton
+ * has to maintain this stack, where it gradually
+ * assembles a tree.
+ */
 struct pgs_parse_stack_s {
+    /** The number of stack elements currently allocated. */
     size_t capacity;
+    /** The current number of stack elements. */
     size_t size;
+    /** The stack element array. */
     struct pgs_parse_stack_element_s* data;
 };
 
@@ -107,21 +240,105 @@ typedef struct pgs_tree_s pgs_tree;
 typedef struct pgs_parse_stack_element_s pgs_parse_stack_element;
 typedef struct pgs_parse_stack_s pgs_parse_stack;
 
+/**
+ * Allocates and initialzie a parse tree node that is a nonterminal with the given
+ * ID and the given child count.
+ * @param nonterminal the nonterminal ID of this tree.
+ * @param chil_count the number of chilren that this tree has.
+ * @return the newly allocated tree, or NULL if a malloc failure occured.
+ */
 pgs_tree* pgs_create_tree_nonterminal(long int nonterminal, size_t child_count);
+/**
+ * Allocates and initialize a parse tree node that is a terminal with the given token.
+ * @param t the token to initialize this tree with. The token need not be valid after this call.
+ * @return the newly allocated tree, or NULL if a malloc failure occured.
+ */
 pgs_tree* pgs_create_tree_terminal(pgs_token* t);
+/**
+ * Frees a nonterminal tree.
+ * @tree the tree to free.
+ */
 void pgs_free_tree_nonterminal(pgs_tree* tree);
+/**
+ * Frees a terminal tree.
+ * @tree the tree to free.
+ */
 void pgs_free_tree_terminal(pgs_tree* tree);
+/**
+ * Computes the parser_action_table index for the given tree.
+ * @param tree the tree for which to compute the index.
+ * @return the index.
+ */
 long int pgs_tree_table_index(pgs_tree* tree);
+/**
+ * Frees a tree.
+ * @param tree the tree to free.
+ */
 void pgs_free_tree(pgs_tree* tree);
 
+/**
+ * Initialzies a parse stack.
+ * @param s the parse stack to initialize.
+ * @return the result of the initialization.
+ */
 pgs_error pgs_parse_stack_init(pgs_parse_stack* s);
+/**
+ * Appends (pushes) a new tree and state to the stack.
+ * @param s the stack to append to.
+ * @param tree the tree to append.
+ * @param state the state to append.
+ * @return the result of the append.
+ */
 pgs_error pgs_parse_stack_append(pgs_parse_stack* s, pgs_tree* tree, long int state);
+/**
+ * Appends a given token to the stack, by initializing a new parse tree noe.
+ * @param s the stack to append to.
+ * @param t the token for which to construct a tree and compute a new state.
+ * @return the result of the append.
+ */
 pgs_error pgs_parse_stack_append_terminal(pgs_parse_stack* s, pgs_token* t);
+/**
+ * Appends a given item to the stack, by popping the correct number of items
+ * and creating a new nonterminal tree node in their place. A new state is also
+ * computed from the nonterminal ID.
+ * @param s the stack to append to.
+ * @param id the nonterminal ID to create.
+ * @param count the number of children to pop.
+ * @return the result of the append.
+ */
 pgs_error pgs_parse_stack_append_nonterminal(pgs_parse_stack* s, long int id, size_t count);
+/**
+ * Gets the state on the top of the stack.
+ * @param s the stack for which to get a state.
+ * @return the state on the top of the stack.
+ */
 long int pgs_parse_stack_top_state(pgs_parse_stack* s);
+/**
+ * Gets the tree on the top of the stack.
+ * @param s the stack for which to get a tree.
+ * @return the tree on the top of the stack.
+ */
 pgs_tree* pgs_parse_stack_top_tree(pgs_parse_stack* s);
+/**
+ * Frees a parse stack, also freeing all the trees.
+ * @param s the stack to free.
+ */
 void pgs_parse_stack_free(pgs_parse_stack* s);
+/**
+ * Takes the given tokens, and attempts to convert them into a parse tree.
+ * @param s the state used for storing errors.
+ * @param list the list of tokens, already filled.
+ * @param into the tree pointer pointer into which a new tree will be stored.
+ * @return the error, if any, that occured.
+ */
 pgs_error pgs_do_parse(pgs_state* s, pgs_token_list* list, pgs_tree** into);
 
 /* == Glue == */
+/**
+ * Attempts to parse tokens from the given string into the given tree.
+ * @param state the state to initialize with error information, if necessary.
+ * @param into the tree to build into.
+ * @param string the string from which to read.
+ * @return the error, if any, that occured.
+ */
 pgs_error pgs_do_all(pgs_state* state, pgs_tree** into, const char* string);

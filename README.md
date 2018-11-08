@@ -41,7 +41,7 @@ A = B | C;
 
 ### Regular expressions
 Regular
-expressions super some basic operators:
+expressions support some basic operators:
 * `hey+` matches `hey`, `heyy`, `heyyy`, and so on.
 * `hey?` matches `hey` or `he`
 * `hey*` matches `he`, `hey`, `heyy`, and so on.

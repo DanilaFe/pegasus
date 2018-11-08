@@ -88,6 +88,59 @@ The corresponding (pretty-printed) JSON output is:
   "max_terminal":0
 }
 ```
+## C Output
+The pegasus repository contains the source code of a program that converts the JSON output into C source code. It generates a derivation tree, stored in `pgs_tree`, which is made up of nonterminal parent nodes and terminal leaves. Below is a simple example of using the functions generated for a grammar that describes the language of a binary operation applied to two numbers.
+The grammar:
+```
+S = expr;
+expr = number op number;
+number = "[0-9]";
+op = "\\+" | "-" || "\\*" || "/"
+```
+_note: backslashes are necessary in the regular expressions because `+` and `*` are operators in the regular expression language._
+
+The code for the API:
+```C
+/* Include the generated header file */
+#include "parser.h"
+#include <stdio.h>
+
+int main(int argc, char** argv) {
+    pgs_state state; /* The state is used for reporting error messages.*/
+    pgs_tree* tree; /* The tree that will be initialized */
+    char buffer[256]; /* Buffer for string input */
+
+    gets(buffer); /* Unsafe function for the sake of example */
+    /* pgs_do_all lexes and parses the text from the buffer. */
+    if(pgs_do_all(&state, &tree, buffer)) {
+        /* A nonzero return code indicates error. Print it.*/
+        printf("Error: %s\n", state.errbuff);
+    } else {
+        /* Do nothing, free the tree. */
+        /* Tree is not initialized unless parse succeeds. */
+        pgs_free_tree(tree);
+    }
+}
+```
+This example is boring because nothing is done with the tree. Let's walk the tree and print it out:
+```
+void print_tree(pgs_tree* tree, const char* source, int indent) {
+    size_t i;
+    /* Print an indent. */
+    for(i = 0; i < indent; i++) printf("  ");
+    /* If the tree is a terminal (actual token) */
+    if(tree->variant == PGS_TREE_TERMINAL) {
+        printf("Terminal: %.*s\n", (int) (PGS_TREE_T_TO(*tree) - PGS_TREE_T_FROM(*tree)),
+                source + PGS_TREE_T_FROM(*tree));
+    } else {
+        printf("Nonterminal: %s\n", pgs_nonterminal_name(PGS_TREE_NT(*tree)));
+        for(i = 0; i < PGS_TREE_NT_COUNT(*tree); i++) {
+            print_tree(PGS_TREE_NT_CHILD(1), source, indent + 1);
+        }
+    }
+}
+```
+Some more useful C macros for accessing the trees can be found in `parser.h`
 ## Contributors
 
 - [DanilaFe](https://github.com/DanilaFe) Danila Fedorin - creator, maintainer

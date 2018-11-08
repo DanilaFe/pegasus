@@ -95,7 +95,7 @@ The grammar:
 S = expr;
 expr = number op number;
 number = "[0-9]";
-op = "\\+" | "-" || "\\*" || "/"
+op = "\\+" | "-" || "\\*" || "/";
 ```
 _note: backslashes are necessary in the regular expressions because `+` and `*` are operators in the regular expression language._
 
@@ -143,6 +143,17 @@ void print_tree(pgs_tree* tree, const char* source, int indent) {
         }
     }
 }
+```
+For the input string `3+3`, the program will output:
+```
+Nonterminal: S
+  Nonterminal: expr
+    Nonterminal: number
+      Terminal: 3
+    Nonterminal: op
+      Terminal: +
+    Nonterminal: number
+      Terminal: 3
 ```
 Some more useful C macros for accessing the trees can be found in `parser.h`
 ## Contributors

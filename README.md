@@ -57,7 +57,7 @@ For the grammar given by:
 A = "hi";
 ```
 The corresponding (pretty-printed) JSON output is:
-```JSON
+```
 {
   "lex_state_table":[[..]..],
   "lex_final_table”:[..],
@@ -123,7 +123,7 @@ int main(int argc, char** argv) {
 }
 ```
 This example is boring because nothing is done with the tree. Let's walk the tree and print it out:
-```
+```C
 void print_tree(pgs_tree* tree, const char* source, int indent) {
     size_t i;
     /* Print an indent. */

@@ -8,7 +8,7 @@
 
 #define PGS_TREE_T(tree) ((tree).tree_data.terminal.token.terminal)
 #define PGS_TREE_T_FROM(tree) ((tree).tree_data.terminal.token.from)
-#define PGS_TREE_T_TO(tree) ((tree).tree_data.terminal.token.from)
+#define PGS_TREE_T_TO(tree) ((tree).tree_data.terminal.token.to)
 #define PGS_TREE_NT(tree) ((tree).tree_data.nonterminal.nonterminal)
 #define PGS_TREE_NT_COUNT(tree) ((tree).tree_data.nonterminal.child_count)
 #define PGS_TREE_NT_CHILD(tree, n) ((tree).tree_data.nonterminal.children[n])

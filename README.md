@@ -133,9 +133,13 @@ void print_tree(pgs_tree* tree, const char* source, int indent) {
         printf("Terminal: %.*s\n", (int) (PGS_TREE_T_TO(*tree) - PGS_TREE_T_FROM(*tree)),
                 source + PGS_TREE_T_FROM(*tree));
     } else {
+        /* PGS_TREE_NT gives the nonterminal ID from the given tree. */
         printf("Nonterminal: %s\n", pgs_nonterminal_name(PGS_TREE_NT(*tree)));
+        /* PGS_TREE_NT_COUNT returns the number of children a nonterminal
+           node has. */
         for(i = 0; i < PGS_TREE_NT_COUNT(*tree); i++) {
-            print_tree(PGS_TREE_NT_CHILD(1), source, indent + 1);
+            /* PGS_TREE_NT_CHILD gets the nth child of a nonterminal tree. */
+            print_tree(PGS_TREE_NT_CHILD(*tree, i), source, indent + 1);
         }
     }
 }

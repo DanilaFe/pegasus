@@ -18,6 +18,12 @@ def item(head, body)
   Pegasus::Pda::Item.new head, body
 end
 
+class Pegasus::State(V, T)
+  def pattern_id
+    @data.compact_map(&.data).max_of?(&.+(1)) || 0_i64
+  end
+end
+
 describe Pegasus::Automaton do
   describe "#initialize" do
     it "Starts at state 0" do
@@ -300,8 +306,7 @@ describe Pegasus::Nfa::Nfa do
           next_state = state.transitions['h'.bytes.first]?
           next_state.should_not be_nil
         else
-          final_id = state.data.compact_map(&.data).max_of?(&.+(1)) || 0_i64
-          final_id.should eq 1
+          state.pattern_id.should eq 1
         end
       end
     end
@@ -320,8 +325,7 @@ describe Pegasus::Nfa::Nfa do
           e_state = state.transitions['e'.bytes.first]?
           e_state.should_not be_nil
         else
-          final_id = state.data.compact_map(&.data).max_of?(&.+(1)) || 0_i64
-          final_id.should eq 1
+          state.pattern_id.should eq 1
         end
       end
     end
@@ -338,8 +342,7 @@ describe Pegasus::Nfa::Nfa do
           h_state = state.transitions['h'.bytes.first]?
           h_state.should_not be_nil
         else
-          final_id = state.data.compact_map(&.data).max_of?(&.+(1)) || 0_i64
-          final_id.should eq 1
+          state.pattern_id.should eq 1
           state.transitions.size.should eq 1
           state.transitions['h'.bytes.first]?.should eq state
         end
@@ -352,8 +355,7 @@ describe Pegasus::Nfa::Nfa do
       dfa = nfa.dfa
       dfa.states.size.should eq 2
       dfa.states.each do |state|
-        final_id = state.data.compact_map(&.data).max_of?(&.+(1)) || 0_i64
-        final_id.should eq 1
+        state.pattern_id.should eq 1
         state.transitions.size.should eq 1
       end
     end
@@ -364,8 +366,7 @@ describe Pegasus::Nfa::Nfa do
       dfa = nfa.dfa
       dfa.states.size.should eq 2
       dfa.states.each do |state|
-        final_id = state.data.compact_map(&.data).max_of?(&.+(1)) || 0_i64
-        final_id.should eq 1
+        state.pattern_id.should eq 1
         if state == dfa.start
           next_state = state.transitions['h'.bytes.first]?
           next_state.should_not be_nil

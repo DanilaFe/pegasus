@@ -254,3 +254,168 @@ describe Pegasus::Pda::DottedItem do
     end
   end
 end
+
+describe Pegasus::Nfa::Nfa do
+  describe "#initialize" do
+    it "Creates a start state" do
+      nfa = Pegasus::Nfa::Nfa.new
+      nfa.@start.should_not be_nil
+    end
+
+    it "Doesn't create a final start state" do
+      nfa = Pegasus::Nfa::Nfa.new
+      nfa.@start.try(&.data).should be_nil
+    end
+  end
+
+  describe "#dfa" do
+    it "Creates an empty DFA with no final states when no patterns were added" do
+      nfa = Pegasus::Nfa::Nfa.new
+      dfa = nfa.dfa
+      dfa.states.size.should eq 1
+      dfa.states.each do |state|
+        state.data.each do |nfa_state|
+          nfa_state.data.should be_nil
+        end
+      end
+    end
+
+    it "Sets the start state of the new DFA" do
+      nfa = Pegasus::Nfa::Nfa.new
+      dfa = nfa.dfa
+      dfa.start.should_not be_nil
+      dfa.start.try(&.id).should eq 0_i64
+    end
+
+    it "Creates a basic two-state DFA for single-character patterns" do
+      nfa = Pegasus::Nfa::Nfa.new
+      nfa.add_regex "h", 0_i64
+      dfa = nfa.dfa
+
+      dfa.states.size.should eq 2
+      dfa.states.each do |state|
+        if state.id == dfa.start
+          state.data.each &.data.should be_nil
+          state.transitions.size.should eq 1
+          next_state = state.transitions['h'.bytes.first]?
+          next_state.should_not be_nil
+        else
+          final_id = state.data.compact_map(&.data).max_of?(&.+(1)) || 0_i64
+          final_id.should eq 1
+        end
+      end
+    end
+    
+    it "Creates a DFA for an OR expression" do
+      nfa = Pegasus::Nfa::Nfa.new
+      nfa.add_regex "h|e", 0_i64
+      dfa = nfa.dfa
+      dfa.states.size.should eq 3
+      dfa.states.each do |state|
+        if state == dfa.start
+          state.data.each &.data.should be_nil
+          state.transitions.size.should eq 2
+          h_state = state.transitions['h'.bytes.first]?
+          h_state.should_not be_nil
+          e_state = state.transitions['e'.bytes.first]?
+          e_state.should_not be_nil
+        else
+          final_id = state.data.compact_map(&.data).max_of?(&.+(1)) || 0_i64
+          final_id.should eq 1
+        end
+      end
+    end
+
+    it "Creates a DFA for a + expression" do
+      nfa = Pegasus::Nfa::Nfa.new
+      nfa.add_regex "h+", 0_i64
+      dfa = nfa.dfa
+      dfa.states.size.should eq 2
+      dfa.states.each do |state|
+        if state == dfa.start
+          state.data.each &.data.should be_nil
+          state.transitions.size.should eq 1
+          h_state = state.transitions['h'.bytes.first]?
+          h_state.should_not be_nil
+        else
+          final_id = state.data.compact_map(&.data).max_of?(&.+(1)) || 0_i64
+          final_id.should eq 1
+          state.transitions.size.should eq 1
+          state.transitions['h'.bytes.first]?.should eq state
+        end
+      end
+    end
+
+    it "Creates a DFA for a * expression" do
+      nfa = Pegasus::Nfa::Nfa.new
+      nfa.add_regex "h*", 0_i64
+      dfa = nfa.dfa
+      dfa.states.size.should eq 2
+      dfa.states.each do |state|
+        final_id = state.data.compact_map(&.data).max_of?(&.+(1)) || 0_i64
+        final_id.should eq 1
+        state.transitions.size.should eq 1
+      end
+    end
+
+    it "Creates a DFA for a ? expression" do
+      nfa = Pegasus::Nfa::Nfa.new
+      nfa.add_regex "h?", 0_i64
+      dfa = nfa.dfa
+      dfa.states.size.should eq 2
+      dfa.states.each do |state|
+        final_id = state.data.compact_map(&.data).max_of?(&.+(1)) || 0_i64
+        final_id.should eq 1
+        if state == dfa.start
+          next_state = state.transitions['h'.bytes.first]?
+          next_state.should_not be_nil
+        else
+          state.transitions['h'.bytes.first]?.should be_nil
+        end
+      end
+    end
+  end
+end
+
+describe Pegasus::Nfa::Transition do
+  describe "#char_states" do
+    it "Does not return any states" do
+      transition = Pegasus::Nfa::Transition.new
+      transition.char_states.size.should eq 0
+    end
+  end
+end
+
+describe Pegasus::Nfa::ByteTransition do
+  describe "#char_states" do
+    it "Only returns one byte" do
+      transition = Pegasus::Nfa::ByteTransition.new 0_u8
+      transition.char_states.should eq [ 0_u8 ]
+    end
+  end
+end
+
+describe Pegasus::Nfa::AnyTransition do
+  describe "#char_states" do
+    it "Returns the full unsigned byte range" do
+      transition = Pegasus::Nfa::AnyTransition.new
+      transition.char_states.should eq (0_u8..255_u8).to_a
+    end
+  end
+end
+
+describe Pegasus::Nfa::RangeTransition do
+  describe "#char_states" do
+    it "Returns the given ranges when not inverted" do
+      transition = Pegasus::Nfa::RangeTransition.new ranges: [(0_u8..1_u8), (2_u8..3_u8)],
+        inverted: false
+      transition.char_states.sort.should eq [ 0_u8, 1_u8, 2_u8, 3_u8 ]
+    end
+
+    it "Returns the ranges not given when inverted" do
+      transition = Pegasus::Nfa::RangeTransition.new ranges: [(0_u8..127_u8), (130_u8..255_u8)],
+        inverted: true
+      transition.char_states.sort.should eq [ 128_u8, 129_u8 ]
+    end
+  end
+end

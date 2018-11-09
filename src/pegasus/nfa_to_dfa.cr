@@ -71,6 +71,7 @@ module Pegasus
         # So, this is a set of "reachable states", and is itself a state.
         new_start_set = find_lambda_states(@start.not_nil!)
         new_start = new_dfa.state_for data: new_start_set
+        new_dfa.start = new_start
 
         # The queue of states to process.
         queue = Set { new_start }

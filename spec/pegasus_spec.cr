@@ -294,7 +294,7 @@ describe Pegasus::Nfa::Nfa do
 
       dfa.states.size.should eq 2
       dfa.states.each do |state|
-        if state.id == dfa.start
+        if state == dfa.start
           state.data.each &.data.should be_nil
           state.transitions.size.should eq 1
           next_state = state.transitions['h'.bytes.first]?

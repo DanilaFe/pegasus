@@ -22,6 +22,27 @@ class Pegasus::State(V, T)
   def pattern_id
     @data.compact_map(&.data).max_of?(&.+(1)) || 0_i64
   end
+
+  def path(length, &block)
+    current = self
+    length.times do
+      current = current.transitions
+        .select { |k, v| yield k }
+        .first?.try &.[1]
+      break unless current
+    end
+    return current
+  end
+
+  def lambda_path(length)
+    path length, &.is_a?(Pegasus::Nfa::LambdaTransition)
+  end
+
+  def straight_path(length)
+    path length, do |t|
+      true
+    end
+  end
 end
 
 describe Pegasus::Automaton do
@@ -417,6 +438,137 @@ describe Pegasus::Nfa::RangeTransition do
       transition = Pegasus::Nfa::RangeTransition.new ranges: [(0_u8..127_u8), (130_u8..255_u8)],
         inverted: true
       transition.char_states.sort.should eq [ 128_u8, 129_u8 ]
+    end
+  end
+end
+
+describe Pegasus::Nfa::StateChain do
+  describe "#initialize" do
+    it "Sets the final state to the start state if no final state is given" do
+      state = Pegasus::Nfa::NState.new id: 0_i64, data: nil
+      chain = Pegasus::Nfa::StateChain.new start: state
+      chain.start.should eq state
+      chain.final.should eq state
+    end
+
+    it "Adds a transition to its tail state when concatenated with another chain" do
+      state_one = Pegasus::Nfa::NState.new id: 0i64, data: nil
+      state_two = Pegasus::Nfa::NState.new id: 1i64, data: nil
+      first_chain = Pegasus::Nfa::StateChain.new state_one, state_one
+      second_chain = Pegasus::Nfa::StateChain.new state_two, state_two
+      first_chain.append! second_chain
+      first_chain.start.should eq state_one
+      first_chain.final.should eq state_two
+      first_chain.start.transitions.size.should eq 1
+      first_chain.start.transitions.keys[0].should be_a Pegasus::Nfa::LambdaTransition
+      first_chain.start.transitions.values[0].should be state_two
+    end
+
+    it "Doesn't do anything when a Nil is appended" do
+      state_one = Pegasus::Nfa::NState.new id: 0i64, data: nil
+      state_two = Pegasus::Nfa::NState.new id: 1i64, data: nil
+      state_one.transitions[Pegasus::Nfa::LambdaTransition.new] = state_two
+      first_chain = Pegasus::Nfa::StateChain.new state_one, state_two
+      first_chain.append! nil
+      first_chain.start.should eq state_one
+      first_chain.final.should eq state_two
+      first_chain.final.transitions.size.should eq 0
+    end
+  end
+end
+
+describe Pegasus::Nfa::Nfa do
+  describe "#add_regex" do
+    it "Correctly compiles one-character regular expression" do
+      nfa = Pegasus::Nfa::Nfa.new
+      nfa.add_regex "h", 0_i64
+      (nfa.start.try(&.transitions.size) || 0).should eq 1
+      nfa.states.size.should eq 4
+    end
+
+    it "Correctly compiles OR regular expression" do
+      nfa = Pegasus::Nfa::Nfa.new
+      nfa.add_regex "h|e", 0_i64
+      nfa.start.not_nil!.transitions.size.should eq 1
+      nfa.states.size.should eq 8
+      or_branch_state = nfa.start.not_nil!.transitions.values[0]
+      or_branch_state.transitions.size.should eq 2
+      seen_h = false
+      seen_e = false
+      or_branch_state.transitions.map(&.[1]).each do |state|
+        transition_byte = state.transitions.keys[0].as?(Pegasus::Nfa::ByteTransition).try(&.byte)
+        seen_h |= transition_byte == 'h'.bytes.first
+        seen_e |= transition_byte == 'e'.bytes.first
+      end
+      seen_h.should be_true
+      seen_e.should be_true
+    end
+
+    it "Correctly compiles ? regular expression" do
+      nfa = Pegasus::Nfa::Nfa.new
+      nfa.add_regex "h?", 0_i64
+      nfa.start.not_nil!.transitions.size.should eq 1
+      nfa.states.size.should eq 6
+      skip_from = nfa.start.not_nil!.straight_path(length: 1)
+      skip_from.should_not be_nil
+      skip_from = skip_from.not_nil!
+      skip_from.transitions.size.should eq 2
+    end
+
+    it "Correctly compiles * regular expression" do
+      nfa = Pegasus::Nfa::Nfa.new
+      nfa.add_regex "h?", 0_i64
+      nfa.start.not_nil!.transitions.size.should eq 1
+      nfa.states.size.should eq 6
+      skip_from = nfa.start.not_nil!.straight_path(length: 1)
+      skip_from.should_not be_nil
+      skip_from = skip_from.not_nil!
+      skip_from.transitions.size.should eq 2
+    end
+
+    it "Correctly compiles + regular expression" do
+      nfa = Pegasus::Nfa::Nfa.new
+      nfa.add_regex "h+", 0_i64
+      nfa.start.not_nil!.transitions.size.should eq 1
+      nfa.states.size.should eq 6
+      return_to = nfa.start.not_nil!.straight_path(length: 1)
+      return_to.should_not be_nil
+      return_to = return_to.not_nil!
+      return_to.transitions.size.should eq 1
+      
+      return_from = return_to.straight_path(length: 3)
+      return_from.should_not be_nil
+      return_from = return_from.not_nil!
+      return_from.transitions.size.should eq 2
+    end
+
+    it "Combines several regular expressions" do
+      nfa = Pegasus::Nfa::Nfa.new
+      nfa.add_regex "h", 1_i64
+      nfa.add_regex "e", 2_i64
+      nfa.start.not_nil!.transitions.size.should eq 2
+    end
+
+    it "Does not compile invalid operators" do
+      nfa = Pegasus::Nfa::Nfa.new
+      expect_raises(Exception) do
+        nfa.add_regex "+", 0_i64
+      end
+
+      expect_raises(Exception) do
+        nfa.add_regex "h(+)", 0_i64
+      end
+    end
+
+    it "Does not compile mismatched parentheses" do
+      nfa = Pegasus::Nfa::Nfa.new
+      expect_raises(Exception) do
+        nfa.add_regex "(", 0_i64
+      end
+
+      expect_raises(Exception) do
+        nfa.add_regex ")", 0_i64
+      end
     end
   end
 end

@@ -11,19 +11,15 @@ module Pegasus
       property final : NState
 
       # Creates a new chain with the given initial and final states.
-      def initialize(@start, @final = @start)
+      def initialize(@start, final = nil)
+        @final = final || @start
       end
 
       # Appends another chain to this one, modifying the states' transition
       # hashes, too.
       def append!(other : StateChain)
-        if @final == nil
-          @start = other.start
-          @final = other.final
-        elsif other.start
-          @final.not_nil!.transitions[LambdaTransition.new] = other.start.not_nil!
-          @final = other.final
-        end
+        @final.not_nil!.transitions[LambdaTransition.new] = other.start.not_nil!
+        @final = other.final
         return self
       end
 
@@ -36,45 +32,39 @@ module Pegasus
     class Nfa
       # Applies the "+" operator to the given `StateChain`.
       private def nfa_plus(chain)
-        if chain.start && chain.final
-          new_final = state
-          new_start = state
-          new_final.transitions[LambdaTransition.new] = new_start
-          chain.final.transitions[LambdaTransition.new] = new_final
-          new_start.transitions[LambdaTransition.new] = chain.start
+        new_final = state
+        new_start = state
+        new_final.transitions[LambdaTransition.new] = new_start
+        chain.final.transitions[LambdaTransition.new] = new_final
+        new_start.transitions[LambdaTransition.new] = chain.start
 
-          chain.start = new_start
-          chain.final = new_final
-        end
+        chain.start = new_start
+        chain.final = new_final
       end
 
       # Applies the "*" operator to the given `StateChain`.
       private def nfa_star(chain)
-        if chain.start && chain.final
-          new_final = state
-          new_start = state
-          new_final.transitions[LambdaTransition.new] = new_start
-          new_start.transitions[LambdaTransition.new] = new_final
-          chain.final.transitions[LambdaTransition.new] = new_final
-          new_start.transitions[LambdaTransition.new] = chain.start
+        new_final = state
+        new_start = state
+        new_final.transitions[LambdaTransition.new] = new_start
+        new_start.transitions[LambdaTransition.new] = new_final
+        chain.final.transitions[LambdaTransition.new] = new_final
+        new_start.transitions[LambdaTransition.new] = chain.start
 
-          chain.start = new_start
-          chain.final = new_final
-        end
+        chain.start = new_start
+        chain.final = new_final
       end
 
       # Applies the "?" operator to the given `StateChain`.
       private def nfa_question(chain)
-        if chain.start && chain.final
-          new_final = state
-          new_start = state
-          new_start.transitions[LambdaTransition.new] = new_final
-          chain.final.transitions[LambdaTransition.new] = new_final
-          new_start.transitions[LambdaTransition.new] = chain.start
+        new_final = state
+        new_start = state
+        new_start.transitions[LambdaTransition.new] = new_final
+        chain.final.transitions[LambdaTransition.new] = new_final
+        new_start.transitions[LambdaTransition.new] = chain.start
 
-          chain.start = new_start
-          chain.final = new_final
-        end
+        chain.start = new_start
+        chain.final = new_final
       end
 
       # Reas a character, taking into account the scape character.

@@ -52,7 +52,7 @@ OptionParser.parse! do |parser|
   parser.on("-S", "--standard-out", "Combines the header and implementation files, and prints to standard out") { split = false; stdout = true }
   parser.on("-p PREFIX", "--prefix=PREFIX", "Sets prefix for generate files") { |prefix| file_prefix = prefix }
   parser.on("-f FILE", "--file-name=", "Sets output file name") { |file| file_name = file }
-  parser.on("-h HEADER", "--header-name=HEADER", "Sets the header file name. Ignores prefix") { |header| header_name = header }
+  parser.on("-H HEADER", "--header-name=HEADER", "Sets the header file name. Ignores prefix") { |header| header_name = header }
   parser.on("-i IMPL", "--implementation-name=IMPL", "Sets the implementation file name. Ignores prefix") { |impl| impl_name = impl }
   parser.on("-h", "--help", "Displays this message") { puts parser }
 end

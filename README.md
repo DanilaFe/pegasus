@@ -1,6 +1,6 @@
 # pegasus
 A parser generator based on Crystal and the UNIX philosophy. It is language agnostic, but can
-currently generate parsers for the [C](#c-output) and [Crystal](#crystal-output) languages so far.
+currently generate parsers for the [C](#c-output) and [Crystal](#crystal-output) languages.
 
 _Warning: Pegasus is experimental. Its APIs are not yet solidified, and are subject to change at any time._
 

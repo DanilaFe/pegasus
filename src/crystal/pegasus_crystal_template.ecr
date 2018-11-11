@@ -1,4 +1,4 @@
-module Pegasus::Generated
+module <%= prefix %>
   MAX_TERMINAL = <%= @max_terminal %>
   LEX_FINAL_TABLE = [ <% @lex_final_table.each do |final| %> <%= final %>_i64, <% end %> ]
   LEX_STATE_TABLE = [ <% @lex_state_table.each do |state| %>

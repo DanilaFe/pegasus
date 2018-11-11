@@ -13,6 +13,8 @@ targets:
     main: src/sim/pegasus_sim.cr
   pegasus-c:
     main: src/c/pegasus_c.cr
+  pegasus-crystal:
+    main: src/crystal/pegasus_crystal.cr
 
 crystal: 0.26.1
 

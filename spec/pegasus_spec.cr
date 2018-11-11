@@ -18,6 +18,32 @@ def item(head, body)
   Pegasus::Pda::Item.new head, body
 end
 
+def pda(*items)
+  terminals = Set(Pegasus::Pda::Terminal).new
+  nonterminals = Set(Pegasus::Pda::Nonterminal).new
+
+  items.to_a.each do |item|
+    nonterminals << item.head 
+    item.body.each do |element|
+      case element
+      when Pegasus::Pda::Terminal
+        terminals << element
+      when Pegasus::Pda::Nonterminal
+        nonterminals << element
+      end
+    end
+  end
+
+  grammar = Pegasus::Pda::Grammar.new terminals: terminals.to_a,
+    nonterminals: nonterminals.to_a
+  items.to_a.each do |item|
+    grammar.add_item item
+  end
+  lr_pda = grammar.create_lr_pda nonterminals.select(&.id.==(0)).first
+  lalr_pda = grammar.create_lalr_pda lr_pda
+  return lalr_pda
+end
+
 class Pegasus::State(V, T)
   def pattern_id
     @data.compact_map(&.data).max_of?(&.+(1)) || 0_i64
@@ -43,6 +69,39 @@ class Pegasus::State(V, T)
       true
     end
   end
+end
+
+class ExceptionRule(T, R)
+  getter index : Int32
+  getter should : T?
+  getter should_not : R?
+
+  def initialize(@index, @should = nil, @should_not = nil)
+  end
+end
+
+class Array(T)
+  def all_should(should, *exceptions)
+    each_with_index do |item, index|
+      is_exception = false
+      exceptions.each do |exception|
+        if exception.index == index
+          if should_rule = exception.should
+            item.should should_rule 
+          end
+          if should_not_rule = exception.should_not
+            item.should_not should_not_rule
+          end
+          is_exception = true
+        end
+      end
+      item.should should unless is_exception
+    end
+  end
+end
+
+def except(index : Int32, should : T? = nil, should_not : R? = nil) forall T, R
+  ExceptionRule(T, R).new index, should, should_not
 end
 
 describe Pegasus::Automaton do
@@ -569,6 +628,179 @@ describe Pegasus::Nfa::Nfa do
       expect_raises(Exception) do
         nfa.add_regex ")", 0_i64
       end
+    end
+  end
+end
+
+describe Pegasus::Dfa do
+  describe "#final_table" do
+    it "Creates a two-entry table when there are no expression" do
+      nfa = Pegasus::Nfa::Nfa.new
+      dfa = nfa.dfa
+      table = dfa.final_table
+      table.size.should eq 2
+      table[0].should eq 0
+      table[1].should eq 0
+    end
+
+    it "Creates a two-entry table with a final state for an empty expression" do
+      nfa = Pegasus::Nfa::Nfa.new
+      nfa.add_regex "", 0_i64
+      dfa = nfa.dfa
+      table = dfa.final_table
+      table.size.should eq 2
+      table[0].should eq 0
+      table[1].should eq 1
+    end
+
+    it "Creates two final states for an OR expression" do
+      nfa = Pegasus::Nfa::Nfa.new
+      nfa.add_regex "h|g", 0_i64
+      dfa = nfa.dfa
+      table = dfa.final_table
+      table.size.should eq 4
+      table[0].should eq 0
+      table[1].should eq 0
+      table[2].should_not eq 0
+      table[3].should_not eq 0
+    end
+  end
+
+  describe "#state_table" do
+    it "Does not allow transitions out of the error state" do
+      nfa = Pegasus::Nfa::Nfa.new
+      dfa = nfa.dfa
+      table = dfa.state_table
+      table[0].each &.should eq 0
+    end
+
+    it "Creates a table leading to the error state when there are no expressions" do
+      nfa = Pegasus::Nfa::Nfa.new
+      dfa = nfa.dfa
+      table = dfa.state_table
+      table.each &.each &.should eq 0
+    end
+
+    it "Creates a transition table with a final state for a single character" do
+      nfa = Pegasus::Nfa::Nfa.new
+      nfa.add_regex "h", 0_i64
+      dfa = nfa.dfa
+      table = dfa.state_table
+      table.size.should eq 3
+      final_byte = 'h'.bytes.first
+      table[1].each_with_index do |state, index|
+        state.should eq 0 if index != final_byte
+        state.should eq 2 if index == final_byte
+      end
+      table[2].each &.should eq 0
+    end
+
+    it "Creates a forked transition table for a fork in the DFA" do
+      nfa = Pegasus::Nfa::Nfa.new
+      nfa.add_regex "h|e", 0_i64
+      dfa = nfa.dfa
+      table = dfa.state_table
+      table.size.should eq 4
+      h_byte = 'h'.bytes.first
+      e_byte = 'e'.bytes.first
+      table[1].each_with_index do |state, index|
+        state.should eq 0 if index != h_byte && index != e_byte
+        state.should_not eq 0 if index == h_byte || index == e_byte 
+      end
+      table[2].each &.should eq 0
+      table[3].each &.should eq 0
+    end
+  end
+end
+
+describe Pegasus::Pda::Pda do
+  describe "#action_table" do
+    it "Creates no actions for the error state" do
+      new_pda = pda item head: nonterminal(0), body: body terminal(0)
+      new_table = new_pda.action_table
+      new_table[0].each &.should eq -1
+    end
+
+    it "Creates a shift and a reduce action for a single nonterminal to terminal item" do
+      new_pda = pda item head: nonterminal(0), body: body terminal(0)
+      new_table = new_pda.action_table
+      new_table[1][1].should eq 0
+      new_table[1][0].should eq -1
+      new_table[2][0].should eq 1
+      new_table[2][1].should eq -1
+    end
+
+    it "Creates two shift and two reduce actions for a start state with two productions" do
+      new_pda = pda item(head: nonterminal(0), body: body terminal(0)),
+        item(head: nonterminal(0), body: body terminal(1))
+      new_table = new_pda.action_table
+      new_table[1][0].should eq -1
+      new_table[1][1].should eq 0
+      new_table[1][2].should eq 0
+      new_table[2][0].should eq 1
+      new_table[2][1].should eq -1
+      new_table[2][2].should eq -1
+      new_table[3][0].should eq 2
+      new_table[3][1].should eq -1
+      new_table[3][2].should eq -1
+    end
+
+    it "Correctly reports a reduce reduce conflict" do
+      new_pda = pda item(head: nonterminal(0), body: body nonterminal(1)),
+        item(head: nonterminal(0), body: body nonterminal(2)),
+        item(head: nonterminal(1), body: body terminal(0)),
+        item(head: nonterminal(2), body: body terminal(0))
+      expect_raises(Exception) do
+        new_table = new_pda.action_table
+      end
+    end
+
+    it "Correctly reports a shift/reduce conflict" do
+      new_pda = pda item(head: nonterminal(0), body: body nonterminal(1), terminal(1)),
+        item(head: nonterminal(0), body: body nonterminal(2)),
+        item(head: nonterminal(1), body: body terminal(0)),
+        item(head: nonterminal(2), body: body terminal(0), terminal(1))
+      expect_raises(Exception) do
+        new_table = new_pda.action_table
+      end
+    end
+  end
+  
+  describe "#state_table" do
+    it "Does not allow transitions out of the error state" do
+      new_pda = pda item head: nonterminal(0), body: body terminal(0)
+      new_table = new_pda.state_table
+      new_table[0].each &.should eq 0
+    end
+
+    it "Creates transitions for terminals" do
+      new_pda = pda item head: nonterminal(0), body: body terminal(0)
+      new_table = new_pda.state_table
+      new_table[1][0].should eq 0
+      new_table[1][1].should eq 2
+      new_table[1][2].should eq 0
+      new_table[2].each &.should eq 0
+    end
+
+    it "Creates transitions for nonterminals" do
+      new_pda = pda item(head: nonterminal(0), body: body nonterminal(1)),
+        item(head: nonterminal(1), body: body terminal(0))
+      new_table = new_pda.state_table
+      new_table[1][0].should eq 0
+      new_table[1][1].should_not eq 0
+      new_table[1][2].should eq 0
+      new_table[1][3].should_not eq 0
+      new_table[1][1].should_not eq new_table[1][3]
+      new_table[2].each &.should eq 0
+      new_table[3].each &.should eq 0
+    end
+  
+    it "Creates transitions for sequences of elements" do
+      new_pda = pda item head: nonterminal(0), body: body terminal(0), terminal(1)
+      new_table = new_pda.state_table
+      new_table[1].all_should eq(0), except(1, should: eq 2)
+      new_table[2].all_should eq(0), except(2, should: eq 3)
+      new_table[3].all_should eq(0)
     end
   end
 end

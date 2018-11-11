@@ -1,5 +1,17 @@
 # pegasus
-A parser generator based on Crystal and the UNIX philosophy.
+A parser generator based on Crystal and the UNIX philosophy. It is language agnostic, but can
+currently generate parsers for the [C](#c-output) and [Crystal](#crystal-output) languages so far.
+
+_Warning: Pegasus is experimental. Its APIs are not yet solidified, and are subject to change at any time._
+
+## Table of Contents
+* [Architecture](#architecture)
+* [Usage](#usage)
+  * [Grammar Rules](#grammar-rules)
+  * [Regular Expressions](#regular-expressions)
+  * [Included Programs](#included-programs)
+* [C Output](#c-output)
+* [Crystal Output](#crystal-output)
 
 ## Architecture
 Pegasus is based on the UNIX philosophy of doing one thing, and doing it well.
@@ -39,7 +51,7 @@ is equivalent to
 A = B | C;
 ```
 
-### Regular expressions
+### Regular Expressions
 Regular
 expressions support some basic operators:
 * `hey+` matches `hey`, `heyy`, `heyyy`, and so on.
@@ -51,43 +63,67 @@ Operators can also be applied to groups of characters:
 
 Please note, however, that Pegasus's lexer does not capture groups.
 
-### Sample Output
-For the grammar given by:
+### Included programs
+Before you use any of these programs, you should use
 ```
-A = "hi";
+shards build --release
 ```
-The corresponding (pretty-printed) JSON output is:
+This will compile all the Pegasus programs in release mode,
+for optimal performance.
+#### `pegasus`
+This program reads grammars from standard input, and generates
+JSON descriptions out LALR automata,
+which will be read by the other programs. For example:
+```Bash
+echo 'A="Hello, world!";' > test.grammar
+./bin/pegasus < test.grammar
 ```
-{
-  "lex_state_table":[[..]..],
-  "lex_final_table”:[..],
-  "parse_state_table":[[..]..],
-  "parse_action_table":[[..]..],
-  "terminals":{
-    "hi":{
-      "terminal_id":0
-    }
-  },
-  "nonterminals":{
-    "A":{
-      "nonterminal_id":0
-    }
-  },
-  "items":[
-    {
-      "head":{
-        "nonterminal_id":0
-      },
-      "body":[
-        {
-          "terminal_id":0
-        }
-      ]
-    }
-  ],
-  "max_terminal":0
-}
+This prints the JSON to the command line. If you'd like to output
+JSON to a file, you can use:
+```Bash
+./bin/pegasus < test.grammar > test.json
 ```
+#### `pegasus-dot`
+This program is used largely for debugging purpose, and generates GraphViz
+DOT output, which can then by converted by the `dot` program into images.
+This greatly helps with debugging generated automata. `pegasus-dot` simply
+reads the generated JSON file:
+```Bash
+./bin/pegasus-dot < test.json
+```
+To generate a PNG from the DOT output, you need the `dot` program installed.
+Once you have that, you can just pipe the output of `pegasus-dot` into `dot`:
+```Bash
+./bin/pegasus-dot < test.json | dot -Tpng -o visual.png
+```
+#### `pegasus-sim`
+This is another program largely used for debugging. Instead of generating
+a parser, it reads a JSON file, then attempts to parse text from STDIN.
+Once it's done, it prints the result of its attempt. Note that because
+it reads input from STDIN, rather than JSON, the JSON
+file has to be given as a command-line argument:
+```Bash
+echo 'Hello, world!' | ./bin/pegasus-sim -i test.json
+```
+
+#### `pegasus-c`
+Finally, a parser generator! `pegasus-c` takes JSON, and creates C
+header and source files that can then be integrated into your project.
+To learn how to use the generated code, please take a look at the
+[C output](#c-output) section.
+```Bash
+./bin/pegasus-c < test.json
+```
+
+#### `pegasus-crystal`
+Another parser generator. `pegasus-crystal` outputs Crystal code
+which can then be integrated into your project.
+To learn how to use the generated code, lease take a look at the
+[Crystal output](#crystal-output) section.
+```Bash
+./bin/pegasus-crystal < test.json
+```
+
 ## C Output
 The pegasus repository contains the source code of a program that converts the JSON output into C source code. It generates a derivation tree, stored in `pgs_tree`, which is made up of nonterminal parent nodes and terminal leaves. Below is a simple example of using the functions generated for a grammar that describes the language of a binary operation applied to two numbers.
 The grammar:
@@ -156,6 +192,80 @@ Nonterminal: S
       Terminal: 3
 ```
 Some more useful C macros for accessing the trees can be found in `parser.h`
+## Crystal Output
+Just like with C, this repository contains a program to output Crystal when code given a JSON file.
+Because Crystal supports exceptions and garbage collection, there is no need to initialize
+any variables, or call corresponding `free` functions. The most basic example of reading
+a line from the standard input and parsing it is below:
+```Crystal
+require "./parser.cr"
+
+Pegasus::Generated.process(STDIN.gets.not_nil!)
+```
+Of course, this isn't particularly interesting. Let's add a basic function to print the tree:
+```Crystal
+def print(tree, indent = 0)
+  indent.times { STDOUT << "  " }
+  case tree
+  when Pegasus::Generated::TerminalTree
+    STDOUT << "Terminal: "
+    STDOUT.puts tree.string
+  when Pegasus::Generated::NonterminalTree
+    STDOUT << "Nonterminal: " << tree.name
+    STDOUT.puts
+    tree.children.each { |it| print(it, indent + 1) }
+  end
+end
+```
+For the input string `3+3`, the program will output:
+```
+Nonterminal: S
+  Nonterminal: expr
+    Nonterminal: number
+      Terminal: 3
+    Nonterminal: op
+      Terminal: +
+    Nonterminal: number
+      Terminal: 3
+```
+
+### JSON Format
+For the grammar given by:
+```
+A = "hi";
+```
+The corresponding (pretty-printed) JSON output is:
+```
+{
+  "lex_state_table":[[..]..],
+  "lex_final_table”:[..],
+  "parse_state_table":[[..]..],
+  "parse_action_table":[[..]..],
+  "terminals":{
+    "hi":{
+      "terminal_id":0
+    }
+  },
+  "nonterminals":{
+    "A":{
+      "nonterminal_id":0
+    }
+  },
+  "items":[
+    {
+      "head":{
+        "nonterminal_id":0
+      },
+      "body":[
+        {
+          "terminal_id":0
+        }
+      ]
+    }
+  ],
+  "max_terminal":0
+}
+```
 ## Contributors
 
 - [DanilaFe](https://github.com/DanilaFe) Danila Fedorin - creator, maintainer

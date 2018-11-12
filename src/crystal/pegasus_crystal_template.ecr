@@ -78,11 +78,11 @@ module <%= prefix %>
         id = LEX_FINAL_TABLE[state]
 
         break if state == 0
+        index += 1
         next if id == 0
 
-        last_match_index = index
+        last_match_index = index - 1
         last_pattern = id
-        index += 1
       end
 
       raise "Invalid character at position #{index}" if last_match_index == -1

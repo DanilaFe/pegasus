@@ -102,6 +102,7 @@ module Pegasus
             last_char = read_char(tokens)
           end
         end
+        last_char.try { |it| ranges << (it..it) }
 
         raise_nfa "Invalid range definition" if tokens.first? != ']'
         tokens.delete_at(0)

@@ -315,7 +315,7 @@ module Pegasus
             else
               chars.push char.not_nil!
               name = read_name(chars)
-              next unless name.size > 0
+              raise_grammar "Unexpected token in production body" unless name.size > 0
               current_body << NonterminalName.new name
             end
           end

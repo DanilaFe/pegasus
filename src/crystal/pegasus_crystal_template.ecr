@@ -121,6 +121,7 @@ module <%= prefix %>
 
       state_stack << PARSE_STATE_TABLE[state_stack.last][tree_stack.last.table_index]
     end
+    raise "Invalid token #{tokens[index].try &.string}" if index != tokens.size
     return tree_stack.last
   end
 

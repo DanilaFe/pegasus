@@ -150,4 +150,5 @@ while true
   end
   state_stack << data.parse_state_table[state_stack.last][tree_stack.last.table_index]
 end
+raise "Unexpected token at position #{index}" if index != tokens.size
 tree_stack.last.display(STDOUT, 0)

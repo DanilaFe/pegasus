@@ -320,6 +320,10 @@ pgs_error pgs_do_parse(pgs_state* s, pgs_token_list* list, pgs_tree** into) {
         }
     }
 
+    if(index != list->token_count) {
+        PGS_PARSE_ERROR(error_label, error, PGS_BAD_TOKEN, "Unexpected token at position");
+    }
+
     *into = stack.data[stack.size - 1].tree;
     stack.size -= 1;
 

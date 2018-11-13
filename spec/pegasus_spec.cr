@@ -366,6 +366,16 @@ describe Pegasus::Nfa::Nfa do
       end
     end
 
+    it "Does not create negative states" do
+      nfa = Pegasus::Nfa::Nfa.new
+      nfa.add_regex "hello", 0_i64
+      nfa.add_regex "goodbye", 1_i64
+      dfa = nfa.dfa
+      dfa.states.each do |state|
+        state.id.should be >= 0
+      end
+    end
+
     it "Sets the start state of the new DFA" do
       nfa = Pegasus::Nfa::Nfa.new
       dfa = nfa.dfa
@@ -543,6 +553,14 @@ describe Pegasus::Nfa::Nfa do
       nfa.add_regex "h", 0_i64
       (nfa.start.try(&.transitions.size) || 0).should eq 1
       nfa.states.size.should eq 4
+    end
+
+    it "Does not add negative states" do
+      nfa = Pegasus::Nfa::Nfa.new
+      nfa.add_regex "hello", 0_i64
+      nfa.states.each do |state|
+        state.id.should be >= 0
+      end
     end
 
     it "Correctly compiles OR regular expression" do

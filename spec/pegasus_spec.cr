@@ -465,6 +465,21 @@ describe Pegasus::Nfa::Nfa do
         end
       end
     end
+    
+    it "Creates a DFA for a range expression" do
+      nfa = Pegasus::Nfa::Nfa.new
+      nfa.add_regex "[helo0-9]", 0_i64
+      dfa = nfa.dfa
+      dfa.states.size.should eq 2
+      dfa.states.each do |state|
+        if state == dfa.start
+          state.transitions.size.should eq 14
+        else
+          state.transitions.size.should eq 0
+          state.pattern_id.should eq 1
+        end
+      end
+    end
   end
 end
 
@@ -617,6 +632,25 @@ describe Pegasus::Nfa::Nfa do
       return_from.should_not be_nil
       return_from = return_from.not_nil!
       return_from.transitions.size.should eq 2
+    end
+
+    it "Correctly compiles range expression" do
+      nfa = Pegasus::Nfa::Nfa.new
+      nfa.add_regex "[helo0-9]", 0_i64
+      nfa.states.size.should eq 4
+      contained = { 'h' => false, 'o' => false, '1' => false, '9' => false }
+      range_transition_state = nfa.start.not_nil!.straight_path(length: 1)
+      range_transition_state.should_not be_nil
+      range_transition_state = range_transition_state.not_nil!
+      range_transition_state.transitions.each do |transition, state|
+        contained.each do |k, v|
+          byte = k.bytes[0]
+          if transition.as?(Pegasus::Nfa::RangeTransition).try &.ranges.one? &.includes? byte
+            contained[k] = true
+          end
+        end
+      end
+      contained.values.all_should eq true
     end
 
     it "Combines several regular expressions" do

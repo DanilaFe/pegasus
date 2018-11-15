@@ -320,6 +320,8 @@ module Pegasus
             end
           end
         end
+
+        raise_grammar "Unexpected end of file" if state != ParseState::Base
       end
 
       # Creates a languge definition from IO.

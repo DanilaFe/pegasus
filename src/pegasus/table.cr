@@ -26,17 +26,30 @@ module Pegasus
   end
 
   module Pda
-    class Pda
-      private def check_conflict(action_table, state_index, index, shifting)
-        current_value = action_table[state_index][index]
-        if shifting
-          raise_table "Shift / reduce conflict" if current_value > 0
-        else
-          raise_table "Shift / reduce conflict" if current_value == 0
-          raise_table "Reduce / reduce conflict" if current_value > 0
-        end
+    class LookaheadItem
+      def insert_shift?(action_table, state)
+        return if done?
+        next_element = item.body[index]
+        return if !next_element.is_a?(Terminal)
+
+        previous_value = action_table[state.id + 1][next_element.id + 1]
+        raise_table "Shift / reduce conflict" if previous_value > 0
+        action_table[state.id + 1][next_element.id + 1] = 0
       end
 
+      def insert_reduce?(action_table, state, self_index)
+        return if !done?
+
+        @lookahead.each do |terminal|
+          previous_value = action_table[state.id + 1][terminal.id + 1]
+          raise_table "Shift / reduce conflict" if previous_value == 0
+          raise_table "Reduce / reduce conflict" if previous_value > 0
+          action_table[state.id + 1][terminal.id + 1] = self_index.to_i64 + 1
+        end
+      end
+    end
+
+    class Pda
       # Creates an action table, determing what the parser should do
       # at the given state and the lookhead token.
       def action_table
@@ -47,20 +60,9 @@ module Pegasus
         # +1 for potential -1, +1 since terminal IDs start at 0.
         table = Array.new(@states.size + 1) { Array.new(max_terminal + 1 + 1, -1_i64) }
         @states.each do |state|
-          done_items = state.data.select &.done?
-          shiftable_items = state.data.select do |item|
-            !item.done? && item.item.body[item.index].is_a?(Terminal)
-          end
-          done_items.each do |item|
-            item.lookahead.each do |terminal|
-              check_conflict(table, state.id + 1, terminal.id + 1, shifting: false)
-              table[state.id + 1][terminal.id + 1] = @items.index(item.item).not_nil!.to_i64 + 1
-            end
-          end
-          shiftable_items.each do |item|
-            terminal = item.item.body[item.index].as(Terminal)
-            check_conflict(table, state.id + 1, terminal.id + 1, shifting: true)
-            table[state.id + 1][terminal.id + 1] = 0
+          state.data.each do |item|
+            item.insert_shift?(table, state)
+            item.insert_reduce?(table, state, @items.index(item.item).not_nil!)
           end
         end
 

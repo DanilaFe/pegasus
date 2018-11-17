@@ -30,6 +30,20 @@ module Pegasus
     end
 
     class Nfa
+      ESCAPES = {
+        '\'' => 0x27_u8,
+        '"'  => 0x22_u8,
+        '?'  => 0x3f_u8,
+        '\\' => 0x5c_u8,
+        'a'  => 0x07_u8,
+        'b'  => 0x08_u8,
+        'f'  => 0x0c_u8,
+        'n'  => 0x0a_u8,
+        'r'  => 0x0d_u8,
+        't'  => 0x09_u8,
+        'v'  => 0x0b_u8
+      }
+
       # Applies the "+" operator to the given `StateChain`.
       private def nfa_plus(chain)
         new_final = state
@@ -72,11 +86,15 @@ module Pegasus
         raise_nfa "Unexpected end of file"  unless tokens.first?
         char = tokens.delete_at(0)
         if char == '\\'
-          raise_nfa "Invalid escape character" unless tokens.first?
+          raise_nfa "Incomplete escape character" unless tokens.first?
           char = tokens.delete_at(0)
+          escape = ESCAPES[char]?
+          raise_nfa "Invalid escape code" unless escape
+          return escape
+        else
+          raise_nfa "Non-ASCII characters not supported" unless char.ascii?
+          return char.bytes[0]
         end
-        raise_nfa "Non-ASCII characters not supported" unless char.ascii?
-        return char.bytes[0]
       end
 
       # Creates an NFA chain using the range syntax ([...])

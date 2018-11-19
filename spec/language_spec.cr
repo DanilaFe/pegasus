@@ -8,25 +8,25 @@ describe Pegasus::Language::LanguageDefinition do
     end
 
     it "Errors on just a nonterminal without a body" do
-      expect_raises(Exception) do
+      expect_raises(Pegasus::Error::GrammarException) do
         language = Pegasus::Language::LanguageDefinition.new %(S);
       end
     end
 
     it "Errors on just a nontemrinal and an equals sign" do
-      expect_raises(Exception) do
+      expect_raises(Pegasus::Error::GrammarException) do
         language = Pegasus::Language::LanguageDefinition.new %(S=);
       end
     end
 
     it "Errors on a production not ending in a semicolon" do
-      expect_raises(Exception) do
+      expect_raises(Pegasus::Error::GrammarException) do
         language = Pegasus::Language::LanguageDefinition.new %(S="h")
       end
     end
 
     it "Errors on a production not ending in a semicolon, when another production follows" do
-      expect_raises(Exception) do
+      expect_raises(Pegasus::Error::GrammarException) do
         language = Pegasus::Language::LanguageDefinition.new %(S=expr\nexpr="h";)
       end
     end

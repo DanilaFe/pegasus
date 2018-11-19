@@ -150,7 +150,7 @@ describe Pegasus::Pda::DottedItem do
       new_item = item head: nonterminal(0),
         body: body terminal(0), terminal(0)
       dotted_item = Pegasus::Pda::DottedItem.new new_item, index: 2_i64
-      expect_raises(Exception) do
+      expect_raises(Pegasus::Error::PdaException) do
         dotted_item.next_item!
       end
     end
@@ -210,7 +210,7 @@ describe Pegasus::Pda::Pda do
         item(head: nonterminal(0), body: body nonterminal(2)),
         item(head: nonterminal(1), body: body terminal(0)),
         item(head: nonterminal(2), body: body terminal(0))
-      expect_raises(Exception) do
+      expect_raises(Pegasus::Error::TableException) do
         new_table = new_pda.action_table
       end
     end
@@ -220,7 +220,7 @@ describe Pegasus::Pda::Pda do
         item(head: nonterminal(0), body: body nonterminal(2)),
         item(head: nonterminal(1), body: body terminal(0)),
         item(head: nonterminal(2), body: body terminal(0), terminal(1))
-      expect_raises(Exception) do
+      expect_raises(Pegasus::Error::TableException) do
         new_table = new_pda.action_table
       end
     end

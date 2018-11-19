@@ -314,14 +314,14 @@ describe Pegasus::Nfa::Nfa do
 
     it "Does not compile incomplete escape codes" do
       nfa = Pegasus::Nfa::Nfa.new
-      expect_raises(Exception) do
+      expect_raises(Pegasus::Error::NfaException) do
         nfa.add_regex "h\\", 1_i64
       end
     end
 
     it "Does not compile invalid escape codes" do
       nfa = Pegasus::Nfa::Nfa.new
-      expect_raises(Exception) do
+      expect_raises(Pegasus::Error::NfaException) do
         nfa.add_regex "\\h", 1_i64
       end
     end
@@ -351,22 +351,22 @@ describe Pegasus::Nfa::Nfa do
 
     it "Does not compile invalid operators" do
       nfa = Pegasus::Nfa::Nfa.new
-      expect_raises(Exception) do
+      expect_raises(Pegasus::Error::NfaException) do
         nfa.add_regex "+", 0_i64
       end
 
-      expect_raises(Exception) do
+      expect_raises(Pegasus::Error::NfaException) do
         nfa.add_regex "h(+)", 0_i64
       end
     end
 
     it "Does not compile mismatched parentheses" do
       nfa = Pegasus::Nfa::Nfa.new
-      expect_raises(Exception) do
+      expect_raises(Pegasus::Error::NfaException) do
         nfa.add_regex "(", 0_i64
       end
 
-      expect_raises(Exception) do
+      expect_raises(Pegasus::Error::NfaException) do
         nfa.add_regex ")", 0_i64
       end
     end

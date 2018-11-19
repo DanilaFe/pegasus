@@ -312,6 +312,36 @@ describe Pegasus::Nfa::Nfa do
       contained.values.all_should eq true
     end
 
+    it "Does not compile incomplete escape codes" do
+      nfa = Pegasus::Nfa::Nfa.new
+      expect_raises(Exception) do
+        nfa.add_regex "h\\", 1_i64
+      end
+    end
+
+    it "Does not compile invalid escape codes" do
+      nfa = Pegasus::Nfa::Nfa.new
+      expect_raises(Exception) do
+        nfa.add_regex "\\h", 1_i64
+      end
+    end
+
+    it "Correctly compiles valid escape codes" do
+      nfa = Pegasus::Nfa::Nfa.new
+      nfa.add_regex "\\\"", 1_i64
+      nfa.add_regex "\\'", 2_i64
+      nfa.add_regex "\n", 3_i64
+
+      nfa.start.not_nil!.transitions.size.should eq 3
+      transition_bytes = [] of UInt8
+      nfa.start.not_nil!.transitions.values.each do |state|
+        state.transitions.size.should eq 1
+        state.transitions.keys[0].should be_a(Pegasus::Nfa::ByteTransition)
+        transition_bytes << state.transitions.keys[0].as(Pegasus::Nfa::ByteTransition).byte
+      end
+      transition_bytes.should eq [ '"'.bytes[0], '\''.bytes[0], '\n'.bytes[0] ]
+    end
+
     it "Combines several regular expressions" do
       nfa = Pegasus::Nfa::Nfa.new
       nfa.add_regex "h", 1_i64

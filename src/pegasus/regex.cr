@@ -41,7 +41,15 @@ module Pegasus
         'n'  => 0x0a_u8,
         'r'  => 0x0d_u8,
         't'  => 0x09_u8,
-        'v'  => 0x0b_u8
+        'v'  => 0x0b_u8,
+        '*'  => 0x2a_u8,
+        '+'  => 0x2b_u8,
+        '-'  => 0x2d_u8,
+        '|'  => 0x7c_u8,
+        '['  => 0x5b_u8,
+        ']'  => 0x5d_u8,
+        '('  => 0x28_u8,
+        ')'  => 0x29_u8,
       }
 
       # Applies the "+" operator to the given `StateChain`.

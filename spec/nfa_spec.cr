@@ -328,18 +328,21 @@ describe Pegasus::Nfa::Nfa do
 
     it "Correctly compiles valid escape codes" do
       nfa = Pegasus::Nfa::Nfa.new
-      nfa.add_regex "\\\"", 1_i64
-      nfa.add_regex "\\'", 2_i64
-      nfa.add_regex "\n", 3_i64
+      specials = [ "\\\"", "\\'", "\\[", "\\]", "\\(", "\\)", "\\|",  "\\?", "\\*", "\\+", "\\n" ]
 
-      nfa.start.not_nil!.transitions.size.should eq 3
+      specials.each_with_index do |special, index|
+        nfa.add_regex special, index.to_i64
+      end
+
+      nfa.start.not_nil!.transitions.size.should eq specials.size
       transition_bytes = [] of UInt8
       nfa.start.not_nil!.transitions.values.each do |state|
         state.transitions.size.should eq 1
         state.transitions.keys[0].should be_a(Pegasus::Nfa::ByteTransition)
         transition_bytes << state.transitions.keys[0].as(Pegasus::Nfa::ByteTransition).byte
       end
-      transition_bytes.should eq [ '"'.bytes[0], '\''.bytes[0], '\n'.bytes[0] ]
+      transition_bytes[0...transition_bytes.size - 1].should eq specials[0...specials.size - 1].map(&.[1].bytes.[0])
+      transition_bytes.last.should eq '\n'.bytes[0]
     end
 
     it "Combines several regular expressions" do

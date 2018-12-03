@@ -328,7 +328,7 @@ describe Pegasus::Nfa::Nfa do
 
     it "Correctly compiles valid escape codes" do
       nfa = Pegasus::Nfa::Nfa.new
-      specials = [ "\\\"", "\\'", "\\[", "\\]", "\\(", "\\)", "\\|",  "\\?", "\\*", "\\+", "\\n" ]
+      specials = [ "\\\"", "\\'", "\\[", "\\]", "\\(", "\\)", "\\|",  "\\?", "\\*", "\\+", "\\.", "\\n" ]
 
       specials.each_with_index do |special, index|
         nfa.add_regex special, index.to_i64

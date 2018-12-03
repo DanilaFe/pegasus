@@ -50,6 +50,7 @@ module Pegasus
         ']'  => 0x5d_u8,
         '('  => 0x28_u8,
         ')'  => 0x29_u8,
+        '.'  => 0x2e_u8,
       }
 
       # Applies the "+" operator to the given `StateChain`.

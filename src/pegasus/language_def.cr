@@ -175,10 +175,8 @@ module Pegasus
           .map do |pair|
             name_tree, regex_tree = pair
             name = name_tree
-              .as(Pegasus::Generated::NonterminalTree).children[0]
               .as(Pegasus::Generated::TerminalTree).string
             regex = regex_tree
-              .as(Pegasus::Generated::NonterminalTree).children[0]
               .as(Pegasus::Generated::TerminalTree).string[1..-2]
             @tokens[name] = regex
           end
@@ -189,7 +187,6 @@ module Pegasus
           .map do |body|
             body
               .flatten(value_index: 0, recursive_name: "grammar_body", recursive_index: 2)
-              .map(&.as(Pegasus::Generated::NonterminalTree).children[0])
               .map(&.as(Pegasus::Generated::TerminalTree).string)
           end
       end
@@ -200,7 +197,6 @@ module Pegasus
           .map do |pair|
             name_tree, bodies_tree = pair
             name = name_tree
-              .as(Pegasus::Generated::NonterminalTree).children[0]
               .as(Pegasus::Generated::TerminalTree).string
            bodies = extract_bodies(bodies_tree)
            @rules[name] = @rules[name]?.try &.concat(bodies) || bodies

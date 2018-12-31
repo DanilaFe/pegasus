@@ -1,17 +1,16 @@
-S = token_list grammar_list;
-token_list = token_def | token_def token_list;
-token_def = keyword_token some_whitespace identifier equals_delimiter regex semicolon_delimiter;
+token identifier = /[a-zA-Z_\-]+/;
+token keyword_token = /token/;
+token keyword_rule = /rule/;
+token some_whitespace = /[ \t\n]+/;
+token equals_delimiter = /[ \t\n]*=[ \t\n]*/;
+token semicolon_delimiter = /[ \t\n]*;[ \t\n]*/;
+token or_delimiter = /[ \t\n]*\|[ \t\n]*/;
+token regex = /\/([^\/]|\\\/)*\//;
 
-grammar_list = grammar_rule | grammar_rule grammar_list;
-grammar_rule = keyword_rule some_whitespace identifier equals_delimiter grammar_bodies semicolon_delimiter;
-grammar_bodies = grammar_body | grammar_body or_delimiter grammar_bodies;
-grammar_body = identifier | identifier some_whitespace grammar_body;
-
-identifier = "[a-zA-Z_\\-]+";
-keyword_token = "token";
-keyword_rule = "rule";
-some_whitespace = "[ \\t\\n]+";
-equals_delimiter = "[ \\t\\n]*=[ \\t\\n]*";
-semicolon_delimiter = "[ \\t\\n]*;[ \\t\\n]*";
-or_delimiter = "[ \\t\\n]*\\|[ \\t\\n]*";
-regex = "/([^/]|\\\\/)*/";
+rule S = token_list grammar_list;
+rule token_list = token_def | token_def token_list;
+rule token_def = keyword_token some_whitespace identifier equals_delimiter regex semicolon_delimiter;
+rule grammar_list = grammar_rule | grammar_rule grammar_list;
+rule grammar_rule = keyword_rule some_whitespace identifier equals_delimiter grammar_bodies semicolon_delimiter;
+rule grammar_bodies = grammar_body | grammar_body or_delimiter grammar_bodies;
+rule grammar_body = identifier | identifier some_whitespace grammar_body;

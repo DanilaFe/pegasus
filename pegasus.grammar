@@ -14,4 +14,4 @@ some_whitespace = "[ \\t\\n]+";
 equals_delimiter = "[ \\t\\n]*=[ \\t\\n]*";
 semicolon_delimiter = "[ \\t\\n]*;[ \\t\\n]*";
 or_delimiter = "[ \\t\\n]*\\|[ \\t\\n]*";
-regex = "\"([^\"\\n\\\\]|(\\\\.))*\"";
+regex = "/([^/]|\\\\/)*/";

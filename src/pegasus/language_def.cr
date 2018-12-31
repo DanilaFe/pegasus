@@ -6,6 +6,7 @@ require "./regex.cr"
 require "./nfa_to_dfa.cr"
 require "./table.cr"
 require "./error.cr"
+require "./generated/grammar_parser.cr"
 
 module Pegasus
   module Language
@@ -39,105 +40,43 @@ module Pegasus
       # Creates a new language data object.
       def initialize(language_definition)
         @terminals, @nonterminals, grammar =
-          generate_grammar(language_definition.declarations)
+          generate_grammar(language_definition)
         @lex_state_table, @lex_final_table, @parse_state_table, @parse_action_table =
-          generate_tables(@terminals, @nonterminals, grammar)
+          generate_tables(@terminals.transform_keys { |it| language_definition.tokens[it] }, @nonterminals, grammar)
         @max_terminal = @terminals.values.max_of?(&.id) || 0_i64
         @items = grammar.items
       end
 
-      # Gets a key from a hash, and if the key doesn't exist, generates it using the block.
-      private def hash_get(hash, key, &block)
-        if hash.has_key? key
-          return hash[key]
+      # Assigns an ID to each unique vaue in the iterable.
+      private def assign_ids(values : Iterable(T), &block : Int64 -> R) forall T, R
+        hash = {} of T => R
+        last_id = 0_i64
+        values.each do |value|
+          next if hash[value]?
+          hash[value] = yield (last_id += 1) - 1
         end
-
-        return (hash[key] = yield key)
-      end
-
-      # Creates an entry for the given nonterminal name in the hash,
-      # unless one exists.
-      private def visit_nonterminal(id, hash, name)
-        hash_get(hash, name) do
-          id += 1
-          Pegasus::Pda::Nonterminal.new (id - 1)
-        end
-        return id
-      end
-
-      # Creates an entry for the given terminal name in the hash,
-      # unless one exists.
-      private def visit_terminal(id, hash, name)
-        hash_get(hash, name) do
-          id += 1
-          Pegasus::Pda::Terminal.new (id - 1)
-        end
-        return id
-      end
-
-      # Finds all the nonterminals in the list of declarations.
-      private def find_nonterminals(declarations)
-        nonterminal_id = 0_i64
-        nonterminals = {} of String => Pegasus::Pda::Nonterminal
-
-        declarations.each do |decl|
-          nonterminal_id = visit_nonterminal(nonterminal_id, nonterminals, decl.head)
-          decl.bodies.each do |body|
-            body
-              .select(&.is_a?(NonterminalName))
-              .map(&.as(NonterminalName).name).each do |elem|
-              nonterminal_id = visit_nonterminal(nonterminal_id, nonterminals, elem)
-            end
-          end
-        end
-        return nonterminals
-      end
-
-      # Finds all the terminals in the list of declarations.
-      private def find_terminals(declarations)
-        terminal_id = 0_i64
-        terminals = {} of String => Pegasus::Pda::Terminal
-
-        declarations.each do |decl|
-          decl.bodies.each do |body|
-            body
-              .select(&.is_a?(TerminalRegex))
-              .map(&.as(TerminalRegex).regex).each do |elem|
-              terminal_id = visit_terminal(terminal_id, terminals, elem)
-            end
-          end
-        end
-        return terminals
+        return hash
       end
 
       # Creates a grammar, returning it and the hashes with identifiers for
       # the terminals and nonterminals.
-      private def generate_grammar(declarations)
-        nonterminals = find_nonterminals declarations
-        terminals = find_terminals declarations
-        items = [] of Pegasus::Pda::Item
-        declarations.each do |decl|
-          item_head = nonterminals[decl.head]
-          decl.bodies.each do |body|
-            item_body = body.map do |elem|
-              case elem
-              when NonterminalName
-                next nonterminals[elem.name]
-              when TerminalRegex
-                next terminals[elem.regex]
-              end
-            end.map(&.not_nil!)
+      private def generate_grammar(language_def)
+        token_ids = assign_ids(language_def.tokens.keys) do |i|
+          Pegasus::Pda::Terminal.new i
+        end
+        rule_ids = assign_ids(language_def.rules.keys) do |i|
+          Pegasus::Pda::Nonterminal.new i
+        end
 
-            items << Pegasus::Pda::Item.new item_head, item_body
+        grammar = Pegasus::Pda::Grammar.new token_ids.values, rule_ids.values
+        language_def.rules.each do |name, bodies|
+          head = rule_ids[name]
+          bodies.each do |body|
+            grammar.add_item(Pegasus::Pda::Item.new head, body.map { |it| token_ids[it]? || rule_ids[it] })
           end
         end
 
-        grammar = Pegasus::Pda::Grammar.new(terminals.values, nonterminals.values)
-        items.each do |i|
-          grammar.add_item i
-        end
-
-        return { terminals, nonterminals, grammar }
+        return { token_ids, rule_ids, grammar }
       end
 
       # Generates lookup tables using the given terminals, nonterminals,
@@ -172,156 +111,107 @@ module Pegasus
       ParseBody
     end
 
-    # Simply a wrapper class to hold a regular expression
-    # literal as specified by the user. This exists so that
-    # the body is made up of two distinctive elements rather than strings.
-    class TerminalRegex
-      # The regular expression the user used to describe this terminal.
-      getter regex : String
+    class Pegasus::Generated::Tree
+      alias SelfDeque = Deque(Pegasus::Generated::Tree)
 
-      # Creates an new temrinal with the given regular expression.
-      def initialize(@regex)
+      protected def flatten_recursive(*, value_index : Int32, recursive_name : String, recursive_index : Int32) : SelfDeque
+        if flattened = self.as?(Pegasus::Generated::NonterminalTree)
+          recursive_child = flattened.children[recursive_index]?
+          value_child = flattened.children[value_index]?
+
+          if flattened.name == recursive_name && recursive_child
+            add_to = recursive_child.flatten_recursive(
+              value_index: value_index,
+              recursive_name: recursive_name,
+              recursive_index: recursive_index)
+          else
+            add_to = SelfDeque.new
+          end
+          add_to.insert(0, value_child) if value_child
+
+          return add_to
+        end
+        return SelfDeque.new
       end
 
-      def to_s(io)
-        io << "\"" << @regex << "\""
-      end
-    end
-
-    # Another wrapper, this time for the name of a nonterminal element.
-    # See `TerminalRegex` for an explanation of why this exists.
-    class NonterminalName
-      # The name of this nonterminal.
-      getter name : String
-
-      # Creates a new nonterminal
-      def initialize(@name)
-      end
-
-      def to_s(io)
-        io << @name
-      end
-    end
-
-    # A declaration of a grammar rule, including several bodies separated by the `|` character.
-    class Declaration
-      # The head of this declaration. This a string because it can only by nonterminal.
-      getter head : String
-      # The bodies of the declaration, each of which is a valid production rule body.
-      getter bodies : Array(Array(TerminalRegex | NonterminalName))
-
-      # Creates a new declaration with the given head and bodies.
-      def initialize(@head, @bodies)
-      end
-
-      def to_s(io)
-        io << head
-        io << " = " << declarations.map do |decl|
-          decl.map(&.to_s).join " "
-        end.join "\n | "
+      # Since currently, * and + operators aren't supported in Pegasus grammars, they tend to be recursively written.
+      # This is a utility function to "flatten" a parse tree produced by a recursively written grammar.
+      def flatten(*, value_index : Int32, recursive_name : String, recursive_index : Int32)
+        flatten_recursive(
+          value_index: value_index,
+          recursive_name: recursive_name,
+          recursive_index: recursive_index).to_a
       end
     end
 
     # A language definition parsed from a grammar string.
     class LanguageDefinition
-      getter declarations = [] of Declaration
+      getter tokens : Hash(String, String)
+      getter rules : Hash(String, Array(Array(String)))
 
       # Creates a new, empty language definition.
       def initialize
-        @declarations = [] of Declaration
+        @tokens = {} of String => String
+        @rules = {} of String => Array(Array(String))
       end
 
       # Creates a new language definition from the given string.
       def initialize(s : String)
-        @declarations = [] of Declaration
+        @tokens = {} of String => String
+        @rules = {} of String => Array(Array(String))
         from_string(s)
       end
 
       # Creates a new language definition from the given IO.
       def initialize(io : IO)
-        @declarations = [] of Declaration
+        @tokens = {} of String => String
+        @rules = {} of String => Array(Array(String))
         from_io(io)
       end
 
-      # Pops tokens from the stack until the bock returns false.
-      private def pop_while(chars, &block)
-        while (char = chars.pop?) && yield char
-        end
-        chars.push char if char
+      private def extract_tokens(token_list_tree)
+        token_list_tree.flatten(value_index: 0, recursive_name: "token_list", recursive_index: 1)
+          .map { |it| ntt = it.as(Pegasus::Generated::NonterminalTree); { ntt.children[2], ntt.children[4] } }
+          .map do |pair|
+            name_tree, regex_tree = pair
+            name = name_tree
+              .as(Pegasus::Generated::NonterminalTree).children[0]
+              .as(Pegasus::Generated::TerminalTree).string
+            regex = regex_tree
+              .as(Pegasus::Generated::NonterminalTree).children[0]
+              .as(Pegasus::Generated::TerminalTree).string[1..-2]
+            @tokens[name] = regex
+          end
       end
 
-      # Reads a nonterminal name from the given list of characters.
-      private def read_name(chars)
-        acc = ""
-        pop_while chars, do |char|
-         next false unless char.ascii_letter? || char.ascii_number? || char == '_'
-         acc += char
-         next true
-        end
-        return acc
+      private def extract_bodies(bodies_tree)
+        bodies_tree.flatten(value_index: 0, recursive_name: "grammar_bodies", recursive_index: 2)
+          .map do |body|
+            body
+              .flatten(value_index: 0, recursive_name: "grammar_body", recursive_index: 2)
+              .map(&.as(Pegasus::Generated::NonterminalTree).children[0])
+              .map(&.as(Pegasus::Generated::TerminalTree).string)
+          end
+      end
+
+      private def extract_rules(grammar_list_tree)
+        grammar_list_tree.flatten(value_index: 0, recursive_name: "grammar_list", recursive_index: 1)
+          .map { |it| ntt = it.as(Pegasus::Generated::NonterminalTree); { ntt.children[2], ntt.children[4] } }
+          .map do |pair|
+            name_tree, bodies_tree = pair
+            name = name_tree
+              .as(Pegasus::Generated::NonterminalTree).children[0]
+              .as(Pegasus::Generated::TerminalTree).string
+           bodies = extract_bodies(bodies_tree)
+           @rules[name] = @rules[name]?.try &.concat(bodies) || bodies
+          end
       end
 
       # Creates a language definition from a string.
       private def from_string(string)
-        chars = string.reverse.chars
-        state = ParseState::Base
-        current_head = ""
-        current_alternatives = [] of Array(TerminalRegex | NonterminalName)
-        current_body = [] of TerminalRegex | NonterminalName
-        while !chars.empty?
-          case state
-          when ParseState::Base
-            pop_while chars, &.ascii_whitespace?
-            state = ParseState::ParseHead if chars.last?
-          when ParseState::ParseHead
-            pop_while chars, &.ascii_whitespace?
-            current_head = read_name chars
-            raise_grammar "Missing production left hand side" unless current_head.size > 0
-            state = ParseState::ParseEquals
-          when ParseState::ParseEquals
-            pop_while chars, &.ascii_whitespace?
-            raise_grammar "Missing equal sign in production" unless chars.last? == '='
-            chars.pop
-            state = ParseState::ParseBody
-          when ParseState::ParseBody
-            pop_while chars, &.ascii_whitespace?
-            char = chars.pop?
-            raise_grammar "Missing terminating semicolon" unless char
-
-            if char == '"'
-              acc = ""
-              pop_while chars, do |string_char|
-                next false if string_char == '"'
-                if string_char == '\\'
-                  string_char = chars.pop?
-                  raise "Invalid escape code" unless string_char
-                end
-                acc += string_char
-                next true
-              end
-              raise_grammar "Missing terminating quotation mark in regular expression" unless chars.last? == '"'
-              chars.pop
-
-              current_body << TerminalRegex.new acc
-            elsif char == '|'
-              current_alternatives << current_body
-              current_body = [] of TerminalRegex | NonterminalName
-            elsif char == ';'
-              current_alternatives << current_body
-              current_body = [] of TerminalRegex | NonterminalName
-              @declarations << Declaration.new current_head, current_alternatives
-              current_alternatives = [] of Array(TerminalRegex | NonterminalName)
-              state = ParseState::Base
-            else
-              chars.push char.not_nil!
-              name = read_name(chars)
-              raise_grammar "Unexpected token in production body" unless name.size > 0
-              current_body << NonterminalName.new name
-            end
-          end
-        end
-
-        raise_grammar "Unexpected end of file" if state != ParseState::Base
+        tree = Pegasus::Generated.process(string).as(Pegasus::Generated::NonterminalTree)
+        extract_tokens(tree.children[0])
+        extract_rules(tree.children[1])
       end
 
       # Creates a languge definition from IO.

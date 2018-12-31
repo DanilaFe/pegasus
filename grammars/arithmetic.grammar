@@ -1,7 +1,14 @@
-S = add_expr;
-add_expr = add_expr add_op mul_expr | mul_expr;
-mul_expr = mul_expr mul_op atom | atom;
-atom = "\\(" add_expr "\\)" | number;
-number = "[1-9][0-9]*";
-add_op = "\\+" | "-";
-mul_op = "\\*" | "/";
+token add = /\+/;
+token sub = /-/;
+token mul = /\*/;
+token div = /\//;
+token open_parenth = /\(/;
+token close_parenth = /\)/;
+token number = /[1-9][0-9]*/;
+
+rule S = add_expr;
+rule add_expr = add_expr add_op mul_expr | mul_expr;
+rule mul_expr = mul_expr mul_op atom | atom;
+rule atom = open_parenth add_expr close_parenth | number;
+rule add_op = add | sub;
+rule mul_op = div | mul;

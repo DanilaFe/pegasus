@@ -1,10 +1,20 @@
-S = any;
-any = parenths any
+token open_parenth = /\(/;
+token close_parenth = /\)/;
+token matched_parenth = /\(\)/;
+token open_square = /\[/;
+token close_square = /\]/;
+token matched_square = /\[\]/;
+token open_curly = /{/;
+token close_curly = /}/;
+token matched_curly = /{}/;
+
+rule S = any;
+rule any = parenths any
     | square_brackets any
     | brackets any
     | parenths
     | square_brackets
     | brackets;
-parenths = "\\(" any "\\)" | "\\(\\)";
-square_brackets = "\\[" any "\\]" | "\\[\\]";
-brackets = "{" any "}" | "{}";
+rule parenths = open_parenth any close_parenth | matched_parenth;
+rule square_brackets = open_square any close_square | matched_square;
+rule brackets = open_curly any close_curly | matched_curly;

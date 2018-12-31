@@ -1,3 +1,7 @@
-S = A | "x" "b";
-A = "a" A "b" | B;
-B = "x";
+token x = /x/;
+token b = /b/;
+token a = /a/;
+
+rule S = A | x b;
+rule A = a A b | B;
+rule B = x;

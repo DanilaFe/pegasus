@@ -1,3 +1,6 @@
-S = A | B "world";
-A = "hello" "world";
-B = "hello";
+token world = /world/;
+token hello = /hello/;
+
+rule S = A | B world;
+rule A = hello world;
+rule B = hello;

@@ -25,32 +25,48 @@ language, then reads the JSON and is responsible for code output.
 
 This is beneficial because this prevents the code generator from being dependent on a language. JSON is a data interchange format, and it is easily readable from almost any programming language. If I, or others, want to add a code generation target, they can just parse the JSON in their preferred language, rather than Crystal. An additional benefit is that the addition of a target doesn't require the pegasus core to be updated or recompiled.
 ## Usage
-### Grammar Rules
-Pegasus parses grammars written in very basic notation. The notation for
-a single grammar rule is as follows:
+Pegasus parses grammars written in very basic notation. The grammars are separated into two
+sections: the __tokens__ and the __rules__.
+### Tokens
+The tokens are terminals, and are described using
+regular expressions. An example token declaration is as follows:
 ```
-S = "hello, world!";
+token hello = /hello/;
 ```
-This matches a single token, given by the regular expression `hello, world!`.
-A rule can reference another rule:
+Notice that the token declaration is terminated by a semicolon. Also notice that the regular expression is marked at both ends by a forward slash, `/`. In order to write a regular expression that includes a forward slash, it needs to be escaped, like `\/`. More information on regular expressions accepted by Pegasus can be found below.
+### Rules
+Grammar rules appear after tokens in the grammar file. An example rule is given as follows:
 ```
-S = AB;
-A = "hello, ";
-B = "world!";
+rule S = hello;
 ```
-Here, `S` matches `hello, world!` too, but creates a parse tree with `S` as root
-and `A` and `B` as children.
+This rule uses the token we declared above, that is, `hello`, which matches the string hello.
+In order to expect multiple tokens, we simply write them one after another:
+```
+rule S = hello hello;
+```
+Grammar rules aren't limited to only tokens. The names of other grammar rules, declared either earlier or later in the file, can also be used. For example:
+```
+rule S = two_hello hello;
+rule two_hello = hello hello;
+```
+Here, we declare a second rule, `two_hello`, and then use it in the `S` rule.
 
-Although it's possible to list a single nonterminal several times on the left han side of a rule, Pegasus also uses the `|` operator to add another alternative. This means that
+Sometimes, it's useful to be able to declare several alternatives for rule. For example, we want to have an "operand" rule in a basic calculator, and an operand can either be a variable like "x" or a number like "3". We can write a rule as follows:
 ```
-A = B;
-A = C;
+rule operand = number | variable;
 ```
-is equivalent to
+### A Note on Parse Trees
+Earlier, we saw two rules written as follows:
 ```
-A = B | C;
+rule S = two_hello hello;
+rule two_hello = hello hello;
 ```
-
+While it accepts the same language, this is __not__ equivalent to the following:
+```
+rule S = hello hello hello;
+```
+The reason is that Pegasus, by default, produces parse trees. The first grammar will produce
+a parse tree whose root node, `S`, has two children, one being `two_hello` and the other being `hello`. The `two_hello` node will have two child nodes, both `hello`. However, the second variant will produce a parse tree whose root node, `S`, has three children, all `hello`.
 ### Regular Expressions
 Regular
 expressions support some basic operators:
@@ -128,10 +144,15 @@ To learn how to use the generated code, lease take a look at the
 The pegasus repository contains the source code of a program that converts the JSON output into C source code. It generates a derivation tree, stored in `pgs_tree`, which is made up of nonterminal parent nodes and terminal leaves. Below is a simple example of using the functions generated for a grammar that describes the language of a binary operation applied to two numbers.
 The grammar:
 ```
-S = expr;
-expr = number op number;
-number = "[0-9]";
-op = "\\+" | "-" || "\\*" || "/";
+token op_add = /\+/;
+token op_sub = /-/;
+token op_mul = /\*/;
+token op_div = /\//;
+token number = /[0-9]/;
+
+rule S = expr;
+rule expr = number op number;
+rule op = op_add | op_sub | op_div | op_mul;
 ```
 _note: backslashes are necessary in the regular expressions because `+` and `*` are operators in the regular expression language._
 

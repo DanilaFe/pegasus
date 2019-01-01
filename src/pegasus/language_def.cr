@@ -182,6 +182,7 @@ module Pegasus
             name_tree, regex_tree = pair
             name = name_tree
               .as(Pegasus::Generated::TerminalTree).string
+            raise_grammar "Declaring a token (#{name}) a second time" if @tokens.has_key? name
             regex = regex_tree
               .as(Pegasus::Generated::TerminalTree).string[1..-2]
             @tokens[name] = regex

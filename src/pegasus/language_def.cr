@@ -204,8 +204,9 @@ module Pegasus
             name_tree, bodies_tree = pair
             name = name_tree
               .as(Pegasus::Generated::TerminalTree).string
-           bodies = extract_bodies(bodies_tree)
-           @rules[name] = @rules[name]?.try &.concat(bodies) || bodies
+            raise_grammar "Declaring a rule (#{name}) with the same name as a token" if @tokens.has_key? name
+            bodies = extract_bodies(bodies_tree)
+            @rules[name] = @rules[name]?.try &.concat(bodies) || bodies
           end
       end
 
@@ -219,6 +220,8 @@ module Pegasus
           if rules = tree.children.find &.as(Pegasus::Generated::NonterminalTree).name.==("grammar_list")
             extract_rules(rules)
           end
+        rescue e : Pegasus::Error::PegasusException
+          raise e
         rescue e : Exception
           raise_grammar e.message.not_nil!
         end

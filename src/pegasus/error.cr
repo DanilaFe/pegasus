@@ -2,8 +2,14 @@ require "colorize"
 
 module Pegasus
   module Error
+    abstract class ErrorContext
+      abstract def to_s(io)
+    end
+
     abstract class PegasusException < Exception
-      def initialize(@description : String, @internal = false)
+      getter context_data : Array(ErrorContext)
+
+      def initialize(@description : String, @context_data = [] of ErrorContext, @internal = false)
         super()
       end
 
@@ -24,8 +30,14 @@ module Pegasus
         end
       end
 
+      def print_extra(io)
+        @context_data.each do |data|
+          io << " - " << data
+          io.puts
+        end
+      end
+
       abstract def get_location_name
-      def print_extra(io) end
     end
 
     class GrammarException < PegasusException
@@ -62,8 +74,10 @@ module Pegasus
 end
 
 macro define_raise(name, class_name)
-  def raise_{{name}}(message, internal = false)
-    raise Pegasus::Error::{{class_name}}.new message, internal: internal
+  def raise_{{name}}(message, context_data = [] of Pegasus::Error::ErrorContext, internal = false)
+    raise Pegasus::Error::{{class_name}}.new message,
+      context_data: context_data.map(&.as(Pegasus::Error::ErrorContext)),
+      internal: internal
   end
 end
 

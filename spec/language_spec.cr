@@ -4,55 +4,55 @@ describe Pegasus::Language::LanguageDefinition do
   describe "#from_string" do
     it "Handles empty strings" do
       expect_raises(Pegasus::Error::GrammarException) do
-        language = Pegasus::Language::LanguageDefinition.new ""
+        Pegasus::Language::LanguageDefinition.new ""
       end
     end
 
     it "Errors on just a rule without a body" do
       expect_raises(Pegasus::Error::GrammarException) do
-        language = Pegasus::Language::LanguageDefinition.new %(rule S);
+        Pegasus::Language::LanguageDefinition.new %(rule S);
       end
     end
 
     it "Errors on just a token without a body" do
       expect_raises(Pegasus::Error::GrammarException) do
-        language = Pegasus::Language::LanguageDefinition.new %(rule S);
+        Pegasus::Language::LanguageDefinition.new %(rule S);
       end
     end
-    
+
     it "Errors on just a rule with an equals sign, but no body" do
       expect_raises(Pegasus::Error::GrammarException) do
-        language = Pegasus::Language::LanguageDefinition.new %(rule S = );
+        Pegasus::Language::LanguageDefinition.new %(rule S = );
       end
     end
 
     it "Errors on just a token with an equals sign, but no body" do
       expect_raises(Pegasus::Error::GrammarException) do
-        language = Pegasus::Language::LanguageDefinition.new %(token S = );
+        Pegasus::Language::LanguageDefinition.new %(token S = );
       end
     end
 
     it "Errors on a token not ending in a semicolon, when another rule follows" do
       expect_raises(Pegasus::Error::GrammarException) do
-        language = Pegasus::Language::LanguageDefinition.new %(token t = /t/\nrule expr = h;)
+        Pegasus::Language::LanguageDefinition.new %(token t = /t/\nrule expr = h;)
       end
     end
 
     it "Errors on a rule not ending in a semicolon, when another rule follows" do
       expect_raises(Pegasus::Error::GrammarException) do
-        language = Pegasus::Language::LanguageDefinition.new %(rule S = expr\nrule expr = h;)
+        Pegasus::Language::LanguageDefinition.new %(rule S = expr\nrule expr = h;)
       end
     end
 
     it "Errors when a duplicate token is declared" do
       expect_raises(Pegasus::Error::GrammarException) do
-        language = Pegasus::Language::LanguageDefinition.new %(token t = /t/; token t = /r/;)
+        Pegasus::Language::LanguageDefinition.new %(token t = /t/; token t = /r/;)
       end
     end
 
     it "Errors when a rule is named the same as a token" do
       expect_raises(Pegasus::Error::GrammarException) do
-        language = Pegasus::Language::LanguageDefinition.new %(token t = /t/; rule t = t;)
+        Pegasus::Language::LanguageDefinition.new %(token t = /t/; rule t = t;)
       end
     end
 

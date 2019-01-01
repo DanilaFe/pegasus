@@ -82,9 +82,9 @@ module Pegasus
         language_def.rules.each do |name, bodies|
           head = rule_ids[name]
           bodies.each do |body|
-            body = body.map do |name|
-              element = token_ids[name]? || rule_ids[name]?
-              raise_grammar "No terminal or rule named #{name}" unless element
+            body = body.map do |element_name|
+              element = token_ids[element_name]? || rule_ids[element_name]?
+              raise_grammar "No terminal or rule named #{element_name}" unless element
               next element
             end
             item = Pegasus::Pda::Item.new head, body
@@ -134,7 +134,7 @@ module Pegasus
     # The state for the grammar parser.
     enum ParseState
       # We're just eating blank spaces waiting for the grammar rule.
-      Base, 
+      Base,
       # We're expecting the right hand side declaration of a production rule.
       ParseHead,
       # We're expecting an equal sign which sits between the head and body of the production.
@@ -239,19 +239,17 @@ module Pegasus
 
       # Creates a language definition from a string.
       private def from_string(string)
-        begin
-          tree = Pegasus::Generated.process(string).as(Pegasus::Generated::NonterminalTree)
-          if tokens = tree.children.find &.as(Pegasus::Generated::NonterminalTree).name.==("token_list")
-            extract_tokens(tokens)
-          end
-          if rules = tree.children.find &.as(Pegasus::Generated::NonterminalTree).name.==("grammar_list")
-            extract_rules(rules)
-          end
-        rescue e : Pegasus::Error::PegasusException
-          raise e
-        rescue e : Exception
-          raise_grammar e.message.not_nil!
+        tree = Pegasus::Generated.process(string).as(Pegasus::Generated::NonterminalTree)
+        if tokens = tree.children.find &.as(Pegasus::Generated::NonterminalTree).name.==("token_list")
+          extract_tokens(tokens)
         end
+        if rules = tree.children.find &.as(Pegasus::Generated::NonterminalTree).name.==("grammar_list")
+          extract_rules(rules)
+        end
+      rescue e : Pegasus::Error::PegasusException
+        raise e
+      rescue e : Exception
+        raise_grammar e.message.not_nil!
       end
 
       # Creates a languge definition from IO.

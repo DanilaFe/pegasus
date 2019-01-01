@@ -1,19 +1,19 @@
 module <%= prefix %>
   MAX_TERMINAL = <%= @max_terminal %>
   LEX_FINAL_TABLE = [ <% @lex_final_table.each do |final| %> <%= final %>_i64, <% end %> ]
-  LEX_STATE_TABLE = [ <% @lex_state_table.each do |state| %>
+  LEX_STATE_TABLE = [<% @lex_state_table.each do |state| %>
     [ <% state.each do |transition| %> <%= transition %>_i64, <% end %> ],<%- end %>
   ]
-  PARSE_ACTION_TABLE = [ <% @parse_action_table.each do |state| %>
+  PARSE_ACTION_TABLE = [<% @parse_action_table.each do |state| %>
     [ <% state.each do |transition| %> <%= transition %>_i64, <% end %> ],<%- end %>
   ]
-  PARSE_STATE_TABLE = [ <% @parse_state_table.each do |state| %>
+  PARSE_STATE_TABLE = [<% @parse_state_table.each do |state| %>
     [ <% state.each do |transition| %> <%= transition %>_i64, <% end %> ],<%- end %>
   ]
-  ITEMS = <% if @items.size == 0 %> [] of Tuple(Int64, Int64) <% else %> [ <% @items.each do |item| %>
+  ITEMS = <% if @items.size == 0 %> [] of Tuple(Int64, Int64) <% else %> [<% @items.each do |item| %>
     { <%= item.head.id %>_i64, <%= item.body.size %>_i64 },<%- end %>
-  ] <%- end %>
-  
+  ]<%- end %>
+
   extend self
 
   abstract class Tree
@@ -97,7 +97,7 @@ module <%= prefix %>
     state_stack = [ 1_i64 ]
     index = 0
 
-    while true
+    loop do
       break if tree_stack.last?.try(&.as?(NonterminalTree)).try(&.nonterminal_id) == 0
       token = tokens[index]?
       action = PARSE_ACTION_TABLE[state_stack.last][token.try(&.terminal_id.+(1)) || 0_i64]

@@ -60,12 +60,12 @@ module Pegasus
           previous_value = action_table[state.id + 1][terminal.id + 1]
           if previous_value == 0
             raise_table "Shift / reduce conflict", context_data: [
-              Pegasus::Dfa::ConflictErrorContext.new([ self_index.to_i64  ]) 
+              Pegasus::Dfa::ConflictErrorContext.new([ self_index.to_i64  ])
             ]
           end
           if previous_value > 0
             raise_table "Reduce / reduce conflict", context_data: [
-              Pegasus::Dfa::ConflictErrorContext.new([ previous_value - 1, self_index.to_i64  ]) 
+              Pegasus::Dfa::ConflictErrorContext.new([ previous_value - 1, self_index.to_i64  ])
             ]
           end
           action_table[state.id + 1][terminal.id + 1] = self_index.to_i64 + 1

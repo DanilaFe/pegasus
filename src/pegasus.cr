@@ -10,4 +10,3 @@ begin
 rescue e : Pegasus::Error::PegasusException
   e.print(STDERR)
 end
-

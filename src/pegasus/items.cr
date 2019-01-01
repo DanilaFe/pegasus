@@ -67,7 +67,7 @@ module Pegasus
       # Turns this item into the next item assuming a shift took place.
       def next_item!
         if @index < @item.body.size
-          @index += 1 
+          @index += 1
         else
           raise_pda "Reached past the end of the item!", internal: true
         end

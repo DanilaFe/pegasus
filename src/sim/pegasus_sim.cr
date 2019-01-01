@@ -28,7 +28,7 @@ class TokenTree < Tree
   def table_index
     @token.id
   end
-  
+
   def display(io, offset)
     offset.times { io << "  " }
     io << @token
@@ -127,7 +127,7 @@ index = 0_i64
 # Final state table ID
 final_id = data.max_terminal + 1 + 1
 
-while true
+loop do
   break if (top = tree_stack.last?) && top.table_index == final_id
   action = data.parse_action_table[state_stack.last][(tokens[index]?.try &.id) || 0_i64]
 
@@ -141,7 +141,7 @@ while true
     new_children = [] of Tree
 
     item.body.size.times do
-      new_children.insert 0, tree_stack.pop 
+      new_children.insert 0, tree_stack.pop
       state_stack.pop
     end
     tree_stack << ParentTree.new item.head.id, data.max_terminal,

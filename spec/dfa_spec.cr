@@ -73,11 +73,10 @@ describe Pegasus::Dfa do
       e_byte = 'e'.bytes.first
       table[1].each_with_index do |state, index|
         state.should eq 0 if index != h_byte && index != e_byte
-        state.should_not eq 0 if index == h_byte || index == e_byte 
+        state.should_not eq 0 if index == h_byte || index == e_byte
       end
       table[2].each &.should eq 0
       table[3].each &.should eq 0
     end
   end
 end
-

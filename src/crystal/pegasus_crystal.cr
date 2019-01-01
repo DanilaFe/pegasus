@@ -20,7 +20,7 @@ stdout = false
 OptionParser.parse! do |parser|
   parser.banner = "Usage: pegasus-crystal [arguments]"
   parser.on("-S", "--standard-out", "Combines the header and implementation files, and prints to standard out") { stdout = true }
-  parser.on("-P PREFIX", "--prefix PREFIX", "Specify the prefix for generated code") do |p| 
+  parser.on("-P PREFIX", "--prefix PREFIX", "Specify the prefix for generated code") do |p|
     prefix = p
   end
   parser.on("-f FILE", "--file-name=FILE", "Sets output file name") { |file| file_name = file }
@@ -31,8 +31,7 @@ data = Pegasus::Language::LanguageData.from_json STDIN
 if stdout
   data.output STDOUT, prefix
 else
-  file = File.open(file_name + ".cr", mode = "w")
+  file = File.open(file_name + ".cr", mode: "w")
   data.output file, prefix
   file.close
 end
-

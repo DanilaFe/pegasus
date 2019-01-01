@@ -23,7 +23,7 @@ def pda(*items)
   nonterminals = Set(Pegasus::Pda::Nonterminal).new
 
   items.to_a.each do |item|
-    nonterminals << item.head 
+    nonterminals << item.head
     item.body.each do |element|
       case element
       when Pegasus::Pda::Terminal
@@ -53,7 +53,7 @@ class Pegasus::State(V, T)
     current = self
     length.times do
       current = current.transitions
-        .select { |k, v| yield k }
+        .select { |k, _| yield k }
         .first?.try &.[1]
       break unless current
     end
@@ -65,9 +65,7 @@ class Pegasus::State(V, T)
   end
 
   def straight_path(length)
-    path length, do |t|
-      true
-    end
+    path(length) { true }
   end
 end
 
@@ -87,7 +85,7 @@ class Array(T)
       exceptions.each do |exception|
         if exception.index == index
           if should_rule = exception.should
-            item.should should_rule 
+            item.should should_rule
           end
           if should_not_rule = exception.should_not
             item.should_not should_not_rule

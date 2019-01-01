@@ -125,7 +125,7 @@ describe Pegasus::Pda::Grammar do
         body: body b
       grammar.add_item item head: b,
         body: body t_x
-    
+
       lr_pda = grammar.create_lr_pda s
       lalr_pda = grammar.create_lalr_pda lr_pda
       lr_pda.states.size.should eq 13
@@ -211,7 +211,7 @@ describe Pegasus::Pda::Pda do
         item(head: nonterminal(1), body: body terminal(0)),
         item(head: nonterminal(2), body: body terminal(0))
       expect_raises(Pegasus::Error::TableException) do
-        new_table = new_pda.action_table
+        new_pda.action_table
       end
     end
 
@@ -221,11 +221,11 @@ describe Pegasus::Pda::Pda do
         item(head: nonterminal(1), body: body terminal(0)),
         item(head: nonterminal(2), body: body terminal(0), terminal(1))
       expect_raises(Pegasus::Error::TableException) do
-        new_table = new_pda.action_table
+        new_pda.action_table
       end
     end
   end
-  
+
   describe "#state_table" do
     it "Does not allow transitions out of the error state" do
       new_pda = pda item head: nonterminal(0), body: body terminal(0)
@@ -254,7 +254,7 @@ describe Pegasus::Pda::Pda do
       new_table[2].each &.should eq 0
       new_table[3].each &.should eq 0
     end
-  
+
     it "Creates transitions for sequences of elements" do
       new_pda = pda item head: nonterminal(0), body: body terminal(0), terminal(1)
       new_table = new_pda.state_table
@@ -264,4 +264,3 @@ describe Pegasus::Pda::Pda do
     end
   end
 end
-

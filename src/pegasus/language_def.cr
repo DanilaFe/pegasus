@@ -205,12 +205,16 @@ module Pegasus
 
       # Creates a language definition from a string.
       private def from_string(string)
-        tree = Pegasus::Generated.process(string).as(Pegasus::Generated::NonterminalTree)
-        if tokens = tree.children.find &.as(Pegasus::Generated::NonterminalTree).name.==("token_list")
-          extract_tokens(tokens)
-        end
-        if rules = tree.children.find &.as(Pegasus::Generated::NonterminalTree).name.==("grammar_list")
-          extract_rules(rules)
+        begin
+          tree = Pegasus::Generated.process(string).as(Pegasus::Generated::NonterminalTree)
+          if tokens = tree.children.find &.as(Pegasus::Generated::NonterminalTree).name.==("token_list")
+            extract_tokens(tokens)
+          end
+          if rules = tree.children.find &.as(Pegasus::Generated::NonterminalTree).name.==("grammar_list")
+            extract_rules(rules)
+          end
+        rescue e : Exception
+          raise_grammar e.message.not_nil!
         end
       end
 

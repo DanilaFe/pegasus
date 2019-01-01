@@ -10,6 +10,16 @@ require "./generated/grammar_parser.cr"
 
 module Pegasus
   module Language
+    class NamedConflictErrorContext < Pegasus::Error::ErrorContext
+      def initialize(@nonterminals : Array(String))
+      end
+
+      def to_s(io)
+        io << "The nonterminals involved are: "
+        @nonterminals.join(", ", io)
+      end
+    end
+
     # The complete data class, built to be all the information
     # needed to construct a parser generator.
     class LanguageData
@@ -93,13 +103,29 @@ module Pegasus
           nfa.add_regex regex, value.id
         end
         dfa = nfa.dfa
-        lex_state_table = dfa.state_table
-        lex_final_table = dfa.final_table
 
-        lr_pda = grammar.create_lr_pda(nonterminals.values.find { |it| it.id == 0 })
-        lalr_pda = grammar.create_lalr_pda(lr_pda)
-        parse_state_table = lalr_pda.state_table
-        parse_action_table = lalr_pda.action_table
+        begin
+          lex_state_table = dfa.state_table
+          lex_final_table = dfa.final_table
+
+          lr_pda = grammar.create_lr_pda(nonterminals.values.find { |it| it.id == 0 })
+          lalr_pda = grammar.create_lalr_pda(lr_pda)
+          parse_state_table = lalr_pda.state_table
+          parse_action_table = lalr_pda.action_table
+        rescue e : Pegasus::Error::PegasusException
+          if old_context = e.context_data
+            .find(&.is_a?(Pegasus::Dfa::ConflictErrorContext))
+            .as?(Pegasus::Dfa::ConflictErrorContext)
+
+            names = old_context.item_ids.map do |id|
+              head = grammar.items[id].head
+              nonterminals.key_for head
+            end
+            e.context_data.delete old_context
+            e.context_data << NamedConflictErrorContext.new names
+          end
+          raise e
+        end
 
         return { lex_state_table, lex_final_table, parse_state_table, parse_action_table }
       end

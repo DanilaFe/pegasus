@@ -4,6 +4,18 @@ require "./error.cr"
 
 module Pegasus
   module Dfa
+    class ConflictErrorContext < Pegasus::Error::ErrorContext
+      getter item_ids : Array(Int64)
+
+      def initialize(@item_ids)
+      end
+
+      def to_s(io)
+        io << "The IDs of the items involved are "
+        @item_ids.join(", ", io)
+      end
+    end
+
     class Dfa
       # Creates a final table, which is used to determine if a state matched a token.
       def final_table
@@ -33,7 +45,11 @@ module Pegasus
         return if !next_element.is_a?(Terminal)
 
         previous_value = action_table[state.id + 1][next_element.id + 1]
-        raise_table "Shift / reduce conflict" if previous_value > 0
+        if previous_value > 0
+          raise_table "Shift / reduce conflict", context_data: [
+            Pegasus::Dfa::ConflictErrorContext.new([ previous_value ])
+          ]
+        end
         action_table[state.id + 1][next_element.id + 1] = 0
       end
 
@@ -42,8 +58,16 @@ module Pegasus
 
         @lookahead.each do |terminal|
           previous_value = action_table[state.id + 1][terminal.id + 1]
-          raise_table "Shift / reduce conflict" if previous_value == 0
-          raise_table "Reduce / reduce conflict" if previous_value > 0
+          if previous_value == 0
+            raise_table "Shift / reduce conflict", context_data: [
+              Pegasus::Dfa::ConflictErrorContext.new([ self_index.to_i64  ]) 
+            ]
+          end
+          if previous_value > 0
+            raise_table "Reduce / reduce conflict", context_data: [
+              Pegasus::Dfa::ConflictErrorContext.new([ previous_value - 1, self_index.to_i64  ]) 
+            ]
+          end
           action_table[state.id + 1][terminal.id + 1] = self_index.to_i64 + 1
         end
       end

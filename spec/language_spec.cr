@@ -3,8 +3,9 @@ require "./spec_utils.cr"
 describe Pegasus::Language::LanguageDefinition do
   describe "#from_string" do
     it "Handles empty strings" do
-      language = Pegasus::Language::LanguageDefinition.new ""
-      language.declarations.size.should eq 0
+      expect_raises(Pegasus::Error::GrammarException) do
+        language = Pegasus::Language::LanguageDefinition.new ""
+      end
     end
 
     it "Errors on just a nonterminal without a body" do
@@ -31,71 +32,40 @@ describe Pegasus::Language::LanguageDefinition do
       end
     end
 
-    it "Correctly parses a single production with a single terminal" do
-      language = Pegasus::Language::LanguageDefinition.new %(S = "h";)
-      language.declarations.size.should eq 1
-      language.declarations[0].head.should eq "S"
-      language.declarations[0].bodies.size.should eq 1
-      language.declarations[0].bodies[0].size.should eq 1
-      language.declarations[0].bodies[0][0].should be_a Pegasus::Language::TerminalRegex
-      language.declarations[0].bodies[0][0].as(Pegasus::Language::TerminalRegex)
-        .regex.should eq "h"
+    it "Correctly parses a single rule with a single terminal or nonterminal" do
+      language = Pegasus::Language::LanguageDefinition.new %(rule S = h;)
+      language.tokens.size.should eq 0
+      language.rules.size.should eq 1
+      language.rules["S"]?.should eq [ [ "h" ] ]
     end
 
-    it "Correctly parses a single production with a single nonterminal" do
-      language = Pegasus::Language::LanguageDefinition.new %(S = expr;)
-      language.declarations.size.should eq 1
-      language.declarations[0].head.should eq "S"
-      language.declarations[0].bodies.size.should eq 1
-      language.declarations[0].bodies[0].size.should eq 1
-      language.declarations[0].bodies[0][0].should be_a Pegasus::Language::NonterminalName
-      language.declarations[0].bodies[0][0].as(Pegasus::Language::NonterminalName)
-        .name.should eq "expr"
+    it "Correctly parses a single token declaration" do
+      language = Pegasus::Language::LanguageDefinition.new %(token hello = /hello/;)
+      language.tokens.size.should eq 1
+      language.tokens["hello"]?.should eq "hello"
+      language.rules.size.should eq 0
     end
 
-    it "Correctly parses a single production with one terminal and one nonterminal" do
-      language = Pegasus::Language::LanguageDefinition.new %(S = "h" expr;)
-      language.declarations.size.should eq 1
-      language.declarations[0].head.should eq "S"
-      language.declarations[0].bodies.size.should eq 1
-      language.declarations[0].bodies[0].size.should eq 2
-      language.declarations[0].bodies[0][0].should be_a Pegasus::Language::TerminalRegex
-      language.declarations[0].bodies[0][0].as(Pegasus::Language::TerminalRegex)
-        .regex.should eq "h"
-      language.declarations[0].bodies[0][1].should be_a Pegasus::Language::NonterminalName
-      language.declarations[0].bodies[0][1].as(Pegasus::Language::NonterminalName)
-        .name.should eq "expr"
+    it "Correctly parses a single rule with more than one terminal or nonterminal" do
+      language = Pegasus::Language::LanguageDefinition.new %(rule S = hello world;)
+      language.tokens.size.should eq 0
+      language.rules.size.should eq 1
+      language.rules["S"]?.should eq [ [ "hello", "world" ] ]
     end
 
-    it "Correctly parses a single production with multiple bodies" do
-      language = Pegasus::Language::LanguageDefinition.new %(S = "h" | "e";)
-      language.declarations.size.should eq 1
-      language.declarations[0].head.should eq "S"
-      language.declarations[0].bodies.size.should eq 2
-      language.declarations[0].bodies[0].size.should eq 1
-      language.declarations[0].bodies[0][0].should be_a Pegasus::Language::TerminalRegex
-      language.declarations[0].bodies[0][0].as(Pegasus::Language::TerminalRegex)
-        .regex.should eq "h"
-      language.declarations[0].bodies[1].size.should eq 1
-      language.declarations[0].bodies[1][0].should be_a Pegasus::Language::TerminalRegex
-      language.declarations[0].bodies[1][0].as(Pegasus::Language::TerminalRegex)
-        .regex.should eq "e"
+    it "Correctly parses a rule with multiple bodies" do
+      language = Pegasus::Language::LanguageDefinition.new %(rule S = s | e;)
+      language.tokens.size.should eq 0
+      language.rules.size.should eq 1
+      language.rules["S"]?.should eq [ [ "s" ], [ "e" ] ]
     end
 
-    it "Correctly parses two productions with one body each" do
-      language = Pegasus::Language::LanguageDefinition.new %(S = "h";\nexpr = "w";)
-      language.declarations.size.should eq 2
-      language.declarations[0].head.should eq "S"
-      language.declarations[0].bodies.size.should eq 1
-      language.declarations[0].bodies[0].size.should eq 1
-      language.declarations[0].bodies[0][0].should be_a Pegasus::Language::TerminalRegex
-      language.declarations[0].bodies[0][0].as(Pegasus::Language::TerminalRegex)
-        .regex.should eq "h"
-      language.declarations[1].bodies.size.should eq 1
-      language.declarations[1].bodies[0].size.should eq 1
-      language.declarations[1].bodies[0][0].should be_a Pegasus::Language::TerminalRegex
-      language.declarations[1].bodies[0][0].as(Pegasus::Language::TerminalRegex)
-        .regex.should eq "w"
+    it "Correctly parses two rules with one body each" do
+      language = Pegasus::Language::LanguageDefinition.new %(rule S = h;\nrule expr = e;)
+      language.tokens.size.should eq 0
+      language.rules.size.should eq 2
+      language.rules["S"]?.should eq [ [ "h" ] ]
+      language.rules["expr"]?.should eq [ [ "e" ] ]
     end
   end
 end

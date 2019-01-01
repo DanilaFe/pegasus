@@ -206,8 +206,12 @@ module Pegasus
       # Creates a language definition from a string.
       private def from_string(string)
         tree = Pegasus::Generated.process(string).as(Pegasus::Generated::NonterminalTree)
-        extract_tokens(tree.children[0])
-        extract_rules(tree.children[1])
+        if tokens = tree.children.find &.as(Pegasus::Generated::NonterminalTree).name.==("token_list")
+          extract_tokens(tokens)
+        end
+        if rules = tree.children.find &.as(Pegasus::Generated::NonterminalTree).name.==("grammar_list")
+          extract_rules(rules)
+        end
       end
 
       # Creates a languge definition from IO.

@@ -7,7 +7,7 @@ token semicolon_delimiter = /[ \t\n]*;[ \t\n]*/;
 token or_delimiter = /[ \t\n]*\|[ \t\n]*/;
 token regex = /\/([^\/]|\\\/)*\//;
 
-rule S = token_list grammar_list;
+rule S = token_list grammar_list | token_list | grammar_list;
 rule token_list = token_def | token_def token_list;
 rule token_def = keyword_token some_whitespace identifier equals_delimiter regex semicolon_delimiter;
 rule grammar_list = grammar_rule | grammar_rule grammar_list;

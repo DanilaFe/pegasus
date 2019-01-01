@@ -7,7 +7,9 @@ _Warning: Pegasus is experimental. Its APIs are not yet solidified, and are subj
 ## Table of Contents
 * [Architecture](#architecture)
 * [Usage](#usage)
-  * [Grammar Rules](#grammar-rules)
+  * [Tokens](#tokens)
+  * [Rules](#rules)
+  * [A Note on Parse Trees](#a-note-on-parse-trees)
   * [Regular Expressions](#regular-expressions)
   * [Included Programs](#included-programs)
 * [C Output](#c-output)

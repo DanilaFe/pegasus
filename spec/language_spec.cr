@@ -44,6 +44,24 @@ describe Pegasus::Language::LanguageDefinition do
       end
     end
 
+    it "Errors when a duplicate token is declared" do
+      expect_raises(Pegasus::Error::GrammarException) do
+        language = Pegasus::Language::LanguageDefinition.new %(token t = /t/; token t = /r/;)
+      end
+    end
+
+    it "Errors when a rule is named the same as a token" do
+      expect_raises(Pegasus::Error::GrammarException) do
+        language = Pegasus::Language::LanguageDefinition.new %(token t = /t/; rule t = t;)
+      end
+    end
+
+    it "Correctly handles two rules with the same name" do
+      language = Pegasus::Language::LanguageDefinition.new %(rule S = weird; rule S = not_weird;)
+      language.tokens.size.should eq 0
+      language.rules.size.should eq 1
+      language.rules["S"]?.should eq [ [ "weird" ], [ "not_weird" ] ]
+    end
 
     it "Correctly parses a single rule with a single terminal or nonterminal" do
       language = Pegasus::Language::LanguageDefinition.new %(rule S = h;)

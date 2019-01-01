@@ -183,7 +183,7 @@ module Pegasus::Generated
         last_pattern = id
       end
 
-      raise "Invalid character at position #{index}" if last_match_index == -1
+      raise "Invalid character #{bytes[start_index].to_s.dump_unquoted} at position #{start_index}" if last_match_index == -1
       tokens << Token.new(last_pattern - 1, string[start_index..last_match_index])
     end
 
@@ -199,7 +199,7 @@ module Pegasus::Generated
       break if tree_stack.last?.try(&.as?(NonterminalTree)).try(&.nonterminal_id) == 0
       token = tokens[index]?
       action = PARSE_ACTION_TABLE[state_stack.last][token.try(&.terminal_id.+(1)) || 0_i64]
-      raise "Invalid token #{token.try &.string}" if action == -1
+      raise "Invalid token #{token.try &.string.dump || "EOF"}" if action == -1
 
       if action == 0
         raise "Unexpected end of file" unless token
@@ -219,7 +219,7 @@ module Pegasus::Generated
 
       state_stack << PARSE_STATE_TABLE[state_stack.last][tree_stack.last.table_index]
     end
-    raise "Invalid token #{tokens[index].try &.string}" if index != tokens.size
+    raise "Invalid token #{tokens[index].string.dump}" if index < tokens.size
     return tree_stack.last
   end
 

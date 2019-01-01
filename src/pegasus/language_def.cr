@@ -72,7 +72,13 @@ module Pegasus
         language_def.rules.each do |name, bodies|
           head = rule_ids[name]
           bodies.each do |body|
-            grammar.add_item(Pegasus::Pda::Item.new head, body.map { |it| token_ids[it]? || rule_ids[it] })
+            body = body.map do |name|
+              element = token_ids[name]? || rule_ids[name]?
+              raise_grammar "No terminal or rule named #{name}" unless element
+              next element
+            end
+            item = Pegasus::Pda::Item.new head, body
+            grammar.add_item item
           end
         end
 

@@ -108,6 +108,7 @@ while index < to_parse.size
   end
 
   break if last_final == -1
+  next if data.lex_skip_table[last_final]
   tokens << Token.new last_final, to_parse[last_start..last_final_index]
 end
 

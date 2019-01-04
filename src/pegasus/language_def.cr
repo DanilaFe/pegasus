@@ -81,7 +81,7 @@ module Pegasus
         grammar = Pegasus::Pda::Grammar.new token_ids.values, rule_ids.values
         language_def.rules.each do |name, bodies|
           head = rule_ids[name]
-          bodies.each &.each do |body|
+          bodies.each &.alternatives.each do |body|
             body = body.map do |element_name|
               element = token_ids[element_name]? || rule_ids[element_name]?
               raise_grammar "No terminal or rule named #{element_name}" unless element
@@ -231,25 +231,25 @@ module Pegasus
     # A language definition parsed from a grammar string.
     class LanguageDefinition
       getter tokens : Hash(String, Token)
-      getter rules : Hash(String, Array(Array(Array(String))))
+      getter rules : Hash(String, Array(Rule))
 
       # Creates a new, empty language definition.
       def initialize
         @tokens = {} of String => Token
-        @rules = {} of String => Array(Array(Array(String)))
+        @rules = {} of String => Array(Rule)
       end
 
       # Creates a new language definition from the given string.
       def initialize(s : String)
         @tokens = {} of String => Token
-        @rules = {} of String => Array(Array(Array(String)))
+        @rules = {} of String => Array(Rule)
         from_string(s)
       end
 
       # Creates a new language definition from the given IO.
       def initialize(io : IO)
         @tokens = {} of String => Token
-        @rules = {} of String => Array(Array(Array(String)))
+        @rules = {} of String => Array(Rule)
         from_io(io)
       end
 
@@ -273,7 +273,7 @@ module Pegasus
             body
               .flatten(value_index: 0, recursive_name: "grammar_body", recursive_index: 2)
               .map(&.as(Pegasus::Generated::TerminalTree).string)
-          end
+        end
       end
 
       private def extract_rules(grammar_list_tree)
@@ -287,9 +287,9 @@ module Pegasus
             bodies = extract_bodies(bodies_tree)
 
             unless old_rules = @rules[name]?
-              @rules[name] = old_rules = Array(Array(Array(String))).new
+              @rules[name] = old_rules = Array(Rule).new
             end
-            old_rules << bodies
+            old_rules << Rule.new bodies
           end
       end
 

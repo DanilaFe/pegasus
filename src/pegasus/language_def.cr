@@ -131,18 +131,6 @@ module Pegasus
       end
     end
 
-    # The state for the grammar parser.
-    enum ParseState
-      # We're just eating blank spaces waiting for the grammar rule.
-      Base,
-      # We're expecting the right hand side declaration of a production rule.
-      ParseHead,
-      # We're expecting an equal sign which sits between the head and body of the production.
-      ParseEquals,
-      # We're parsing the body of the grammar, which consists of zero or more tokens.
-      ParseBody
-    end
-
     class Pegasus::Generated::Tree
       alias SelfDeque = Deque(Pegasus::Generated::Tree)
 
@@ -253,17 +241,27 @@ module Pegasus
         from_io(io)
       end
 
+      private def extract_options(statement_end_tree)
+        statement_end_tree = statement_end_tree.as(Pegasus::Generated::NonterminalTree)
+        return [] of Option unless statement_end_tree.children.size > 1
+        options_tree = statement_end_tree.children[0].as(Pegasus::Generated::NonterminalTree)
+        options = options_tree.children[1]
+          .flatten(value_index: 0, recursive_name: "option_list", recursive_index: 2)
+          .map(&.as(Pegasus::Generated::NonterminalTree).children[0])
+          .map(&.as(Pegasus::Generated::TerminalTree).string)
+      end
+
       private def extract_tokens(token_list_tree)
         token_list_tree.flatten(value_index: 0, recursive_name: "token_list", recursive_index: 1)
-          .map { |it| ntt = it.as(Pegasus::Generated::NonterminalTree); { ntt.children[2], ntt.children[4] } }
-          .map do |pair|
-            name_tree, regex_tree = pair
+          .map { |it| ntt = it.as(Pegasus::Generated::NonterminalTree); { ntt.children[2], ntt.children[4], ntt.children[5] } }
+          .map do |data|
+            name_tree, regex_tree, statement_end = data
             name = name_tree
               .as(Pegasus::Generated::TerminalTree).string
             raise_grammar "Declaring a token (#{name}) a second time" if @tokens.has_key? name
             regex = regex_tree
               .as(Pegasus::Generated::TerminalTree).string[1..-2]
-            @tokens[name] = Token.new regex
+            @tokens[name] = Token.new regex, extract_options(statement_end)
           end
       end
 
@@ -278,9 +276,9 @@ module Pegasus
 
       private def extract_rules(grammar_list_tree)
         grammar_list_tree.flatten(value_index: 0, recursive_name: "grammar_list", recursive_index: 1)
-          .map { |it| ntt = it.as(Pegasus::Generated::NonterminalTree); { ntt.children[2], ntt.children[4] } }
-          .map do |pair|
-            name_tree, bodies_tree = pair
+          .map { |it| ntt = it.as(Pegasus::Generated::NonterminalTree); { ntt.children[2], ntt.children[4], ntt.children[5] } }
+          .map do |data|
+            name_tree, bodies_tree, statement_end = data
             name = name_tree
               .as(Pegasus::Generated::TerminalTree).string
             raise_grammar "Declaring a rule (#{name}) with the same name as a token" if @tokens.has_key? name
@@ -289,7 +287,7 @@ module Pegasus
             unless old_rules = @rules[name]?
               @rules[name] = old_rules = Array(Rule).new
             end
-            old_rules << Rule.new bodies
+            old_rules << Rule.new bodies, extract_options(statement_end)
           end
       end
 

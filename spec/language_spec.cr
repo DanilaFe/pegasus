@@ -56,6 +56,12 @@ describe Pegasus::Language::LanguageDefinition do
       end
     end
 
+    it "Correctly handles options" do
+      language = Pegasus::Language::LanguageDefinition.new %(token hello = /hello/ [ skip ];)
+      language.tokens.size.should eq 1
+      language.tokens["hello"]?.should eq Pegasus::Language::Token.new("hello", [ "skip" ])
+    end
+
     it "Correctly handles two rules with the same name" do
       language = Pegasus::Language::LanguageDefinition.new %(rule S = weird; rule S = not_weird;)
       language.tokens.size.should eq 0

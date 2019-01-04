@@ -23,6 +23,8 @@ module Pegasus
     # The complete data class, built to be all the information
     # needed to construct a parser generator.
     class LanguageData
+      # Table for tokens that should be skipped.
+      getter lex_skip_table : Array(Bool)
       # The state table for the lexer, which is used for transitions
       # of the `Pegasus::Nfa::Nfa` during tokenizing.
       getter lex_state_table : Array(Array(Int64))
@@ -51,8 +53,9 @@ module Pegasus
       def initialize(language_definition)
         @terminals, @nonterminals, grammar =
           generate_grammar(language_definition)
-        @lex_state_table, @lex_final_table, @parse_state_table, @parse_action_table =
-          generate_tables(@terminals.transform_keys { |it| language_definition.tokens[it].regex }, @nonterminals, grammar)
+        @lex_skip_table, @lex_state_table, @lex_final_table,
+          @parse_state_table, @parse_action_table =
+          generate_tables(language_definition, @terminals, @nonterminals, grammar)
         @max_terminal = @terminals.values.max_of?(&.id) || 0_i64
         @items = grammar.items
       end
@@ -97,14 +100,16 @@ module Pegasus
 
       # Generates lookup tables using the given terminals, nonterminals,
       # and grammar.
-      private def generate_tables(terminals, nonterminals, grammar)
+      private def generate_tables(language_def, terminals, nonterminals, grammar)
         nfa = Pegasus::Nfa::Nfa.new
-        terminals.each do |regex, value|
-          nfa.add_regex regex, value.id
+        terminals.each do |terminal, value|
+          nfa.add_regex language_def.tokens[terminal].regex, value.id
         end
         dfa = nfa.dfa
 
         begin
+          lex_skip_table = [ false ] +
+            language_def.tokens.map &.[1].options.includes?("skip")
           lex_state_table = dfa.state_table
           lex_final_table = dfa.final_table
 
@@ -127,7 +132,7 @@ module Pegasus
           raise e
         end
 
-        return { lex_state_table, lex_final_table, parse_state_table, parse_action_table }
+        return { lex_skip_table, lex_state_table, lex_final_table, parse_state_table, parse_action_table }
       end
     end
 

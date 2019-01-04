@@ -24,6 +24,7 @@ module Pegasus
   module Language
     class LanguageData
       JSON.mapping(
+        lex_skip_table: { type: Array(Bool), setter: false },
         lex_state_table: { type: Array(Array(Int64)), setter: false },
         lex_final_table: { type: Array(Int64), setter: false },
         parse_state_table: { type: Array(Array(Int64)), setter: false },

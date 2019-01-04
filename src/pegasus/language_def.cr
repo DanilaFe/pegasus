@@ -81,7 +81,7 @@ module Pegasus
         grammar = Pegasus::Pda::Grammar.new token_ids.values, rule_ids.values
         language_def.rules.each do |name, bodies|
           head = rule_ids[name]
-          bodies.each do |body|
+          bodies.each &.each do |body|
             body = body.map do |element_name|
               element = token_ids[element_name]? || rule_ids[element_name]?
               raise_grammar "No terminal or rule named #{element_name}" unless element
@@ -179,25 +179,25 @@ module Pegasus
     # A language definition parsed from a grammar string.
     class LanguageDefinition
       getter tokens : Hash(String, String)
-      getter rules : Hash(String, Array(Array(String)))
+      getter rules : Hash(String, Array(Array(Array(String))))
 
       # Creates a new, empty language definition.
       def initialize
         @tokens = {} of String => String
-        @rules = {} of String => Array(Array(String))
+        @rules = {} of String => Array(Array(Array(String)))
       end
 
       # Creates a new language definition from the given string.
       def initialize(s : String)
         @tokens = {} of String => String
-        @rules = {} of String => Array(Array(String))
+        @rules = {} of String => Array(Array(Array(String)))
         from_string(s)
       end
 
       # Creates a new language definition from the given IO.
       def initialize(io : IO)
         @tokens = {} of String => String
-        @rules = {} of String => Array(Array(String))
+        @rules = {} of String => Array(Array(Array(String)))
         from_io(io)
       end
 
@@ -233,7 +233,11 @@ module Pegasus
               .as(Pegasus::Generated::TerminalTree).string
             raise_grammar "Declaring a rule (#{name}) with the same name as a token" if @tokens.has_key? name
             bodies = extract_bodies(bodies_tree)
-            @rules[name] = @rules[name]?.try &.concat(bodies) || bodies
+
+            unless old_rules = @rules[name]?
+              @rules[name] = old_rules = Array(Array(Array(String))).new
+            end
+            old_rules << bodies
           end
       end
 

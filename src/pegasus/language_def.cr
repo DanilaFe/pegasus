@@ -52,7 +52,7 @@ module Pegasus
         @terminals, @nonterminals, grammar =
           generate_grammar(language_definition)
         @lex_state_table, @lex_final_table, @parse_state_table, @parse_action_table =
-          generate_tables(@terminals.transform_keys { |it| language_definition.tokens[it] }, @nonterminals, grammar)
+          generate_tables(@terminals.transform_keys { |it| language_definition.tokens[it].regex }, @nonterminals, grammar)
         @max_terminal = @terminals.values.max_of?(&.id) || 0_i64
         @items = grammar.items
       end
@@ -176,27 +176,79 @@ module Pegasus
       end
     end
 
+    alias Option = String
+    
+    # Since Pegasus supports options on tokens and rules,
+    # we need to represent an object to which options can be attached.
+    # this is this type of object.
+    abstract class OptionObject
+      # Gets the actual list of options attached to this object.
+      getter options : Array(Option)
+
+      def initialize
+        @options = [] of Option
+      end
+    end
+
+    # A token declaration, with zero or more rules attached to it.
+    class Token < OptionObject
+      # Gets the regular expression that defines this token.
+      getter regex : String
+
+      def initialize(@regex, @options = [] of Option)
+      end
+
+      def ==(other : Token)
+        return (other.regex == @regex) && (other.options == @options)
+      end
+
+      def hash(hasher)
+        @regex.hash(hasher)
+        @options.hash(hasher)
+        hasher
+      end
+    end
+
+    # A single rule. This can have one or more alternatives,
+    # but has the same rules (zero or more) applied to them.
+    class Rule < OptionObject
+      getter alternatives : Array(Array(String))
+
+      def initialize(@alternatives, @options = [] of Option)
+      end
+
+      def ==(other : Rule)
+        return (other.alternatives == @alternatives) && (other.options == @options)
+      end
+
+      def hash(hasher)
+        @alternatives.hash(hasher)
+        @options.hash(hasher)
+        hasher
+      end
+    end
+
     # A language definition parsed from a grammar string.
     class LanguageDefinition
-      getter tokens : Hash(String, String)
+      getter tokens : Hash(String, Token)
       getter rules : Hash(String, Array(Array(Array(String))))
 
       # Creates a new, empty language definition.
       def initialize
-        @tokens = {} of String => String
+        @tokens = {} of String => Token
         @rules = {} of String => Array(Array(Array(String)))
       end
 
       # Creates a new language definition from the given string.
       def initialize(s : String)
-        @tokens = {} of String => String
+        @tokens = {} of String => Token
         @rules = {} of String => Array(Array(Array(String)))
         from_string(s)
       end
 
       # Creates a new language definition from the given IO.
       def initialize(io : IO)
-        @tokens = {} of String => String
+        @tokens = {} of String => Token
         @rules = {} of String => Array(Array(Array(String)))
         from_io(io)
       end
@@ -211,7 +263,7 @@ module Pegasus
             raise_grammar "Declaring a token (#{name}) a second time" if @tokens.has_key? name
             regex = regex_tree
               .as(Pegasus::Generated::TerminalTree).string[1..-2]
-            @tokens[name] = regex
+            @tokens[name] = Token.new regex
           end
       end
 

@@ -258,7 +258,7 @@ module Pegasus
 
       private def extract_tokens(token_list_tree)
         token_list_tree.flatten(value_index: 0, recursive_name: "token_list", recursive_index: 1)
-          .map { |it| ntt = it.as(Pegasus::Generated::NonterminalTree); { ntt.children[2], ntt.children[4], ntt.children[5] } }
+          .map { |it| ntt = it.as(Pegasus::Generated::NonterminalTree); { ntt.children[1], ntt.children[3], ntt.children[4] } }
           .map do |data|
             name_tree, regex_tree, statement_end = data
             name = name_tree
@@ -274,14 +274,14 @@ module Pegasus
         bodies_tree.flatten(value_index: 0, recursive_name: "grammar_bodies", recursive_index: 2)
           .map do |body|
             body
-              .flatten(value_index: 0, recursive_name: "grammar_body", recursive_index: 2)
+              .flatten(value_index: 0, recursive_name: "grammar_body", recursive_index: 1)
               .map(&.as(Pegasus::Generated::TerminalTree).string)
         end
       end
 
       private def extract_rules(grammar_list_tree)
         grammar_list_tree.flatten(value_index: 0, recursive_name: "grammar_list", recursive_index: 1)
-          .map { |it| ntt = it.as(Pegasus::Generated::NonterminalTree); { ntt.children[2], ntt.children[4], ntt.children[5] } }
+          .map { |it| ntt = it.as(Pegasus::Generated::NonterminalTree); { ntt.children[1], ntt.children[3], ntt.children[4] } }
           .map do |data|
             name_tree, bodies_tree, statement_end = data
             name = name_tree

@@ -12,6 +12,7 @@ _Warning: Pegasus is experimental. Its APIs are not yet solidified, and are subj
   * [A Note on Parse Trees](#a-note-on-parse-trees)
   * [Regular Expressions](#regular-expressions)
   * [Included Programs](#included-programs)
+  * [Options](#options)
 * [C Output](#c-output)
 * [Crystal Output](#crystal-output)
 
@@ -80,7 +81,26 @@ Operators can also be applied to groups of characters:
 * `(ab)+` matches `ab`, `abab`, `ababab`, and so on.
 
 Please note, however, that Pegasus's lexer does not capture groups.
+### Options
+Pegasus supports an experimental mechanism to aid in parser generation, which involves attaching options
+to tokens or rules. Right now, the only option that is recognized is attached to a token definition. This option is "skip".
+Options are delcared as such:
+```
+token space = / +/ [ skip ];
+```
+The skip option means that the token it's attached to, in this case `space`, will be immediately discarded, and parsing will go on
+as if it wasn't there. For example, if we want a whitespace-insensitive list of digits, we can write it as such: 
+```
+token space = / +/ [ skip ];
+token digit = /[0-9]/;
+token list_start = /\[/;
+token list_end = /\]/;
+token comma = /,/;
 
+rule list = list_start list_recursive list_end;
+rule list_recursive = digit | digit comma list_recursive;
+```
+Now, this will be able to parse equivalently the strings "[3]", "[ 3 ]" and [ 3]", because the whitespace token is ignored.
 ### Included programs
 Before you use any of these programs, you should use
 ```
@@ -255,7 +275,8 @@ Nonterminal: S
 ### JSON Format
 For the grammar given by:
 ```
-A = "hi";
+token hi = /hi/;
+rule A = hi;
 ```
 The corresponding (pretty-printed) JSON output is:
 ```

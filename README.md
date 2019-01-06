@@ -113,7 +113,7 @@ This program reads grammars from standard input, and generates
 JSON descriptions out LALR automata,
 which will be read by the other programs. For example:
 ```Bash
-echo 'A="Hello, world!";' > test.grammar
+echo 'token hello = "Hello, world!"; rule S = hello;' > test.grammar
 ./bin/pegasus < test.grammar
 ```
 This prints the JSON to the command line. If you'd like to output
@@ -247,7 +247,7 @@ Pegasus::Generated.process(STDIN.gets.not_nil!)
 ```
 Of course, this isn't particularly interesting. Let's add a basic function to print the tree:
 ```Crystal
-def print(tree, indent = 0)
+def print_tree(tree, indent = 0)
   indent.times { STDOUT << "  " }
   case tree
   when Pegasus::Generated::TerminalTree
@@ -256,7 +256,7 @@ def print(tree, indent = 0)
   when Pegasus::Generated::NonterminalTree
     STDOUT << "Nonterminal: " << tree.name
     STDOUT.puts
-    tree.children.each { |it| print(it, indent + 1) }
+    tree.children.each { |it| print_tree(it, indent + 1) }
   end
 end
 ```

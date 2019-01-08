@@ -85,7 +85,7 @@ module Pegasus
         language_def.rules.each do |name, bodies|
           head = rule_ids[name]
           bodies.each &.alternatives.each do |body|
-            body = body.map do |element_name|
+            body = body.elements.map do |element_name|
               element = token_ids[element_name]? || rule_ids[element_name]?
               raise_grammar "No terminal or rule named #{element_name}" unless element
               next element
@@ -202,10 +202,48 @@ module Pegasus
       end
     end
 
+    # An element of a grammar rule. Can be either a token or another rule.
+    class RuleElement
+      # The name of the element, as specified in the grammar.
+      getter name : String
+
+      def initialize(@name)
+      end
+
+      def ==(other : RuleElement)
+        return @name == other.name
+      end
+    end
+
+    # An element that is optional.
+    class OptionalElement < RuleElement
+    end
+
+    # An element that is repeated one or more times.
+    class OneOrMoreElement < RuleElement
+    end
+
+    # An element that is repeated zero or more times.
+    class ZeroOrMoreElement < RuleElement
+    end
+
+    # One of the alternatives of a rule. 
+    class RuleAlternative
+      # The elements of the rule.
+      getter elements : Array(RuleElement)
+
+      def initialize(@elements)
+      end
+
+      def ==(other : RuleAlternative)
+        return @elements == other.elements
+      end
+    end
+
     # A single rule. This can have one or more alternatives,
     # but has the same rules (zero or more) applied to them.
     class Rule < OptionObject
-      getter alternatives : Array(Array(String))
+      getter alternatives : Array(RuleAlternative)
 
       def initialize(@alternatives, @options = [] of Option)
       end
@@ -273,9 +311,10 @@ module Pegasus
       private def extract_bodies(bodies_tree)
         bodies_tree.flatten(value_index: 0, recursive_name: "grammar_bodies", recursive_index: 2)
           .map do |body|
-            body
+            RuleAlternative.new body
               .flatten(value_index: 0, recursive_name: "grammar_body", recursive_index: 1)
               .map(&.as(Pegasus::Generated::TerminalTree).string)
+              .map { |it| RuleElement.new it }
         end
       end
 

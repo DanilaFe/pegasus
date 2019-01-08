@@ -1,5 +1,22 @@
 require "./spec_helper"
 
+def rule_alternative(*args)
+  elements = [] of Pegasus::Language::RuleElement
+  args.each do |arg|
+    value = case arg
+            when String
+              Pegasus::Language::RuleElement.new arg
+            end
+    elements << value if value
+  end
+
+  return Pegasus::Language::RuleAlternative.new elements
+end
+
+def rule(*alternatives)
+  return Pegasus::Language::Rule.new alternatives.to_a
+end
+
 def nonterminal(id)
   Pegasus::Pda::Nonterminal.new id.to_i64
 end

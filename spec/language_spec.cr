@@ -66,14 +66,14 @@ describe Pegasus::Language::LanguageDefinition do
       language = Pegasus::Language::LanguageDefinition.new %(rule S = weird; rule S = not_weird;)
       language.tokens.size.should eq 0
       language.rules.size.should eq 1
-      language.rules["S"]?.should eq [ Pegasus::Language::Rule.new([ [ "weird" ] ]), Pegasus::Language::Rule.new([ [ "not_weird" ] ]) ]
+      language.rules["S"]?.should eq [ rule(rule_alternative("weird")), rule(rule_alternative("not_weird")) ]
     end
 
     it "Correctly parses a single rule with a single terminal or nonterminal" do
       language = Pegasus::Language::LanguageDefinition.new %(rule S = h;)
       language.tokens.size.should eq 0
       language.rules.size.should eq 1
-      language.rules["S"]?.should eq [ Pegasus::Language::Rule.new [ [ "h" ] ] ]
+      language.rules["S"]?.should eq [ rule(rule_alternative("h")) ]
     end
 
     it "Correctly handles whitespace between the token / rule keyword and the identifier" do
@@ -81,7 +81,7 @@ describe Pegasus::Language::LanguageDefinition do
       language.tokens.size.should eq 1
       language.tokens["t"]?.should eq Pegasus::Language::Token.new("t")
       language.rules.size.should eq 1
-      language.rules["S"]?.should eq [ Pegasus::Language::Rule.new [ [ "t" ] ] ]
+      language.rules["S"]?.should eq [ rule(rule_alternative("t")) ]
     end
 
     it "Correctly handles whitespace around the equals sign" do
@@ -89,7 +89,7 @@ describe Pegasus::Language::LanguageDefinition do
       language.tokens.size.should eq 1
       language.tokens["t"]?.should eq Pegasus::Language::Token.new("t")
       language.rules.size.should eq 1
-      language.rules["S"]?.should eq [ Pegasus::Language::Rule.new [ [ "t" ] ] ]
+      language.rules["S"]?.should eq [ rule(rule_alternative("t")) ]
     end
 
     it "Correctly handles whitespace around the semicolon" do
@@ -97,14 +97,14 @@ describe Pegasus::Language::LanguageDefinition do
       language.tokens.size.should eq 1
       language.tokens["t"]?.should eq Pegasus::Language::Token.new("t")
       language.rules.size.should eq 1
-      language.rules["S"]?.should eq [ Pegasus::Language::Rule.new [ [ "t" ] ] ]
+      language.rules["S"]?.should eq [ rule(rule_alternative("t")) ]
     end
 
     it "Correctly handles whitespace between rule identifiers" do
       language = Pegasus::Language::LanguageDefinition.new %(rule S = hello   \n  goodbye   \n  |   \n   world;)
       language.tokens.size.should eq 0
       language.rules.size.should eq 1
-      language.rules["S"]?.should eq [ Pegasus::Language::Rule.new [ [ "hello", "goodbye" ], [ "world" ] ] ]
+      language.rules["S"]?.should eq [ rule(rule_alternative("hello", "goodbye"), rule_alternative("world")) ]
     end
 
     it "Correctly parses a single token declaration" do
@@ -118,22 +118,22 @@ describe Pegasus::Language::LanguageDefinition do
       language = Pegasus::Language::LanguageDefinition.new %(rule S = hello world;)
       language.tokens.size.should eq 0
       language.rules.size.should eq 1
-      language.rules["S"]?.should eq [ Pegasus::Language::Rule.new [ [ "hello", "world" ] ] ]
+      language.rules["S"]?.should eq [ rule(rule_alternative("hello", "world")) ]
     end
 
     it "Correctly parses a rule with multiple bodies" do
       language = Pegasus::Language::LanguageDefinition.new %(rule S = s | e;)
       language.tokens.size.should eq 0
       language.rules.size.should eq 1
-      language.rules["S"]?.should eq [ Pegasus::Language::Rule.new [ [ "s" ], [ "e" ] ] ]
+      language.rules["S"]?.should eq [ rule(rule_alternative("s"), rule_alternative("e")) ]
     end
 
     it "Correctly parses two rules with one body each" do
       language = Pegasus::Language::LanguageDefinition.new %(rule S = h;\nrule expr = e;)
       language.tokens.size.should eq 0
       language.rules.size.should eq 2
-      language.rules["S"]?.should eq [ Pegasus::Language::Rule.new [ [ "h" ] ] ]
-      language.rules["expr"]?.should eq [ Pegasus::Language::Rule.new [ [ "e" ] ] ]
+      language.rules["S"]?.should eq [ rule(rule_alternative("h")) ]
+      language.rules["expr"]?.should eq [ rule(rule_alternative("e")) ]
     end
   end
 end

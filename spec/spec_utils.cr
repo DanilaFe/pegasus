@@ -17,8 +17,8 @@ def rule(*alternatives)
   return Pegasus::Language::Rule.new alternatives.to_a
 end
 
-def nonterminal(id)
-  Pegasus::NonterminalId.new id.to_i64
+def nonterminal(id, start = false)
+  Pegasus::NonterminalId.new id.to_i64, start
 end
 
 def terminal(id)
@@ -56,7 +56,7 @@ def pda(*items)
   items.to_a.each do |item|
     grammar.add_item item
   end
-  lr_pda = grammar.create_lr_pda nonterminals.select(&.id.==(0)).first
+  lr_pda = grammar.create_lr_pda
   lalr_pda = grammar.create_lalr_pda lr_pda
   return lalr_pda
 end

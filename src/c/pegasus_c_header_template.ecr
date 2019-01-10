@@ -3,7 +3,7 @@
 
 /* == Nonterminal ID Definitions == */
 <% @nonterminals.each do |name, value| -%>
-#define PGS_NONTERMINAL_<%= name.underscore.upcase %> <%= value.id %>
+#define PGS_NONTERMINAL_<%= name.underscore.upcase %> <%= value.table_index - 1 %>
 <% end -%>
 
 #define PGS_TREE_T(tree) ((tree).tree_data.terminal.token.terminal)

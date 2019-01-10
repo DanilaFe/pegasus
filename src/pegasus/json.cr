@@ -3,13 +3,14 @@ require "json"
 module Pegasus
   class TerminalId
     JSON.mapping(
-      id: { type: Int64, key: "terminal_id", setter: false }
+      id: { type: Int64, key: "terminal_id", setter: false, getter: false }
     )
   end
 
   class NonterminalId
     JSON.mapping(
-      id: { type: Int64, key: "nonterminal_id", setter: false }
+      id: { type: Int64, key: "nonterminal_id", setter: false, getter: false },
+      start: { type: Bool, setter: false, getter: false }
     )
   end
 

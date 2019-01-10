@@ -22,7 +22,7 @@ module Pegasus
       # Checks if the given set contains the empty set. This is used for computing
       # FIRST and lookahead sets when generating an (LA)LR automaton.
       private def contains_empty(set)
-        return set.select(&.id.==(TerminalId::SPECIAL_EMPTY)).size != 0
+        return set.select(&.is_a?(EmptyTerminalId)).size != 0
       end
 
       # Concatenates a set with another set, and returns whether the size of the set
@@ -57,7 +57,7 @@ module Pegasus
             compute_alternative_first(first_sets, tail)
             add_first.concat first_sets[tail]
         else
-            add_first = add_first.reject &.id.==(TerminalId::SPECIAL_EMPTY)
+            add_first = add_first.reject &.is_a?(EmptyTerminalId)
         end
 
         return concat_watching(first, add_first)
@@ -80,7 +80,7 @@ module Pegasus
         first_sets = Hash(ElementId | Array(ElementId), Set(TerminalId)).new
         @terminals.each { |t| first_sets[t] = Set { t } }
         @nonterminals.each { |nt| first_sets[nt] = Set(TerminalId).new }
-        first_sets[[] of ElementId] = Set { TerminalId.new(TerminalId::SPECIAL_EMPTY) }
+        first_sets[[] of ElementId] = Set(TerminalId) { EmptyTerminalId.new }
         change_occured = true
 
         while change_occured
@@ -99,7 +99,7 @@ module Pegasus
         lookahead = first_sets[alternative].dup
         if contains_empty(lookahead)
           lookahead.concat(old_lookahead)
-          lookahead = lookahead.reject &.id.==(TerminalId::SPECIAL_EMPTY)
+          lookahead = lookahead.reject &.is_a?(EmptyTerminalId)
         end
         return lookahead.to_set
       end
@@ -185,15 +185,15 @@ module Pegasus
       end
 
       # Create an LR(1) PDA given a start symbol.
-      def create_lr_pda(start)
+      def create_lr_pda
         pda = Pda.new @items
         first_sets = compute_first
         # Set of items starting with the start nonterminal
-        start_items = @items.select(&.head.==(start)).map do |it|
-            LookaheadItem.new it, Set { TerminalId.new(TerminalId::SPECIAL_EOF) }
+        start_items = @items.select(&.head.start?).map do |it|
+          LookaheadItem.new it, Set(TerminalId) { EofTerminalId.new }
         end
         # Set of all current dotted items
-        all_start_items = all_dots(first_sets,  start_items)
+        all_start_items = all_dots(first_sets, start_items)
         start_state = pda.state_for data: all_start_items
 
         queue = Set(PState).new

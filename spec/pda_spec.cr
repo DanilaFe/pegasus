@@ -45,7 +45,7 @@ describe Pegasus::Pda::Grammar do
     it "Handles empty grammars" do
       grammar = Pegasus::Pda::Grammar.new [] of Pegasus::TerminalId,
         [] of Pegasus::NonterminalId
-      pda = grammar.create_lr_pda nonterminal 0
+      pda = grammar.create_lr_pda
       pda.states.size.should eq 1
       pda.states.first.transitions.size.should eq 0
       pda.states.first.data.size.should eq 0
@@ -53,10 +53,10 @@ describe Pegasus::Pda::Grammar do
 
     it "Handles grammars with one rule" do
       grammar = Pegasus::Pda::Grammar.new [ terminal 0 ],
-        [ nonterminal 0 ]
-      grammar.add_item item head: nonterminal(0),
+        [ nonterminal 0, start: true ]
+      grammar.add_item item head: nonterminal(0, start: true),
         body: body terminal(0)
-      pda = grammar.create_lr_pda nonterminal 0
+      pda = grammar.create_lr_pda
       pda.states.size.should eq 2 # Start + with item shifted over
 
       start_state = pda.states.find(&.id.==(0)).not_nil!
@@ -66,7 +66,7 @@ describe Pegasus::Pda::Grammar do
 
     it "Handles grammars with epsilon-moves" do
       terminals = [ terminal 0 ]
-      nonterminals = [ nonterminal(0), nonterminal(1) ]
+      nonterminals = [ nonterminal(0, start: true), nonterminal(1) ]
 
       grammar = Pegasus::Pda::Grammar.new terminals, nonterminals
       grammar.add_item item head: nonterminals[0],
@@ -74,7 +74,7 @@ describe Pegasus::Pda::Grammar do
       grammar.add_item item head: nonterminals[1],
         body: body terminals[0]
 
-      pda = grammar.create_lr_pda nonterminals[0]
+      pda = grammar.create_lr_pda
       pda.states.size.should eq 3
 
       start_state = pda.states.find(&.id.==(0))
@@ -109,7 +109,7 @@ describe Pegasus::Pda::Grammar do
       t_a = terminal(2)
       terminals = [ t_x, t_b, t_a ]
 
-      s = nonterminal 0
+      s = nonterminal 0, start: true
       a = nonterminal 1
       b = nonterminal 2
       nonterminals = [ s, a, b ]
@@ -126,7 +126,7 @@ describe Pegasus::Pda::Grammar do
       grammar.add_item item head: b,
         body: body t_x
 
-      lr_pda = grammar.create_lr_pda s
+      lr_pda = grammar.create_lr_pda
       lalr_pda = grammar.create_lalr_pda lr_pda
       lr_pda.states.size.should eq 13
       lalr_pda.states.size.should eq 9
@@ -137,7 +137,7 @@ end
 describe Pegasus::Pda::DottedItem do
   describe "#next_item!" do
     it "Advances the index when possible" do
-      new_item = item head: nonterminal(0),
+      new_item = item head: nonterminal(0, start: true),
         body: body terminal(0), terminal(0)
       dotted_item = Pegasus::Pda::DottedItem.new new_item, index: 0_i64
       dotted_item.next_item!
@@ -147,7 +147,7 @@ describe Pegasus::Pda::DottedItem do
     end
 
     it "Raises when already at the end" do
-      new_item = item head: nonterminal(0),
+      new_item = item head: nonterminal(0, start: true),
         body: body terminal(0), terminal(0)
       dotted_item = Pegasus::Pda::DottedItem.new new_item, index: 2_i64
       expect_raises(Pegasus::Error::PdaException) do
@@ -158,14 +158,14 @@ describe Pegasus::Pda::DottedItem do
 
   describe "#done?" do
     it "Returns false when dot is not past the last element" do
-      new_item = item head: nonterminal(0),
+      new_item = item head: nonterminal(0, start: true),
         body: body terminal(0), terminal(0)
       dotted_item = Pegasus::Pda::DottedItem.new new_item, index: 0_i64
       dotted_item.done?.should be_false
     end
 
     it "Returns true when dot is just after the last element" do
-      new_item = item head: nonterminal(0),
+      new_item = item head: nonterminal(0, start: true),
         body: body terminal(0), terminal(0)
       dotted_item = Pegasus::Pda::DottedItem.new new_item, index: 2_i64
       dotted_item.done?.should be_true
@@ -176,13 +176,13 @@ end
 describe Pegasus::Pda::Pda do
   describe "#action_table" do
     it "Creates no actions for the error state" do
-      new_pda = pda item head: nonterminal(0), body: body terminal(0)
+      new_pda = pda item head: nonterminal(0, start: true), body: body terminal(0)
       new_table = new_pda.action_table
       new_table[0].each &.should eq -1
     end
 
     it "Creates a shift and a reduce action for a single nonterminal to terminal item" do
-      new_pda = pda item head: nonterminal(0), body: body terminal(0)
+      new_pda = pda item head: nonterminal(0, start: true), body: body terminal(0)
       new_table = new_pda.action_table
       new_table[1][1].should eq 0
       new_table[1][0].should eq -1
@@ -191,8 +191,8 @@ describe Pegasus::Pda::Pda do
     end
 
     it "Creates two shift and two reduce actions for a start state with two productions" do
-      new_pda = pda item(head: nonterminal(0), body: body terminal(0)),
-        item(head: nonterminal(0), body: body terminal(1))
+      new_pda = pda item(head: nonterminal(0, start: true), body: body terminal(0)),
+        item(head: nonterminal(0, start: true), body: body terminal(1))
       new_table = new_pda.action_table
       new_table[1][0].should eq -1
       new_table[1][1].should eq 0
@@ -206,8 +206,8 @@ describe Pegasus::Pda::Pda do
     end
 
     it "Correctly reports a reduce reduce conflict" do
-      new_pda = pda item(head: nonterminal(0), body: body nonterminal(1)),
-        item(head: nonterminal(0), body: body nonterminal(2)),
+      new_pda = pda item(head: nonterminal(0, start: true), body: body nonterminal(1)),
+        item(head: nonterminal(0, start: true), body: body nonterminal(2)),
         item(head: nonterminal(1), body: body terminal(0)),
         item(head: nonterminal(2), body: body terminal(0))
       expect_raises(Pegasus::Error::TableException) do
@@ -216,8 +216,8 @@ describe Pegasus::Pda::Pda do
     end
 
     it "Correctly reports a shift/reduce conflict" do
-      new_pda = pda item(head: nonterminal(0), body: body nonterminal(1), terminal(1)),
-        item(head: nonterminal(0), body: body nonterminal(2)),
+      new_pda = pda item(head: nonterminal(0, start: true), body: body nonterminal(1), terminal(1)),
+        item(head: nonterminal(0, start: true), body: body nonterminal(2)),
         item(head: nonterminal(1), body: body terminal(0)),
         item(head: nonterminal(2), body: body terminal(0), terminal(1))
       expect_raises(Pegasus::Error::TableException) do
@@ -228,13 +228,13 @@ describe Pegasus::Pda::Pda do
 
   describe "#state_table" do
     it "Does not allow transitions out of the error state" do
-      new_pda = pda item head: nonterminal(0), body: body terminal(0)
+      new_pda = pda item head: nonterminal(0, start: true), body: body terminal(0)
       new_table = new_pda.state_table
       new_table[0].each &.should eq 0
     end
 
     it "Creates transitions for terminals" do
-      new_pda = pda item head: nonterminal(0), body: body terminal(0)
+      new_pda = pda item head: nonterminal(0, start: true), body: body terminal(0)
       new_table = new_pda.state_table
       new_table[1][0].should eq 0
       new_table[1][1].should eq 2
@@ -243,7 +243,7 @@ describe Pegasus::Pda::Pda do
     end
 
     it "Creates transitions for nonterminals" do
-      new_pda = pda item(head: nonterminal(0), body: body nonterminal(1)),
+      new_pda = pda item(head: nonterminal(0, start: true), body: body nonterminal(1)),
         item(head: nonterminal(1), body: body terminal(0))
       new_table = new_pda.state_table
       new_table[1][0].should eq 0
@@ -256,7 +256,7 @@ describe Pegasus::Pda::Pda do
     end
 
     it "Creates transitions for sequences of elements" do
-      new_pda = pda item head: nonterminal(0), body: body terminal(0), terminal(1)
+      new_pda = pda item head: nonterminal(0, start: true), body: body terminal(0), terminal(1)
       new_table = new_pda.state_table
       new_table[1].all_should eq(0), except(1, should: eq 2)
       new_table[2].all_should eq(0), except(2, should: eq 3)

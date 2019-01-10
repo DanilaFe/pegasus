@@ -56,7 +56,7 @@ module Pegasus
         @lex_skip_table, @lex_state_table, @lex_final_table,
           @parse_state_table, @parse_action_table =
           generate_tables(language_definition, @terminals, @nonterminals, grammar)
-        @max_terminal = @terminals.values.max_of?(&.id) || 0_i64
+        @max_terminal = @terminals.values.max_of?(&.table_index.-(1)) || 0_i64
         @items = grammar.items
       end
 
@@ -78,7 +78,7 @@ module Pegasus
           Pegasus::TerminalId.new i
         end
         rule_ids = assign_ids(language_def.rules.keys) do |i|
-          Pegasus::NonterminalId.new i
+          Pegasus::NonterminalId.new i, start: i == 0
         end
 
         grammar = Pegasus::Pda::Grammar.new token_ids.values, rule_ids.values
@@ -103,7 +103,7 @@ module Pegasus
       private def generate_tables(language_def, terminals, nonterminals, grammar)
         nfa = Pegasus::Nfa::Nfa.new
         terminals.each do |terminal, value|
-          nfa.add_regex language_def.tokens[terminal].regex, value.id
+          nfa.add_regex language_def.tokens[terminal].regex, value.table_index - 1
         end
         dfa = nfa.dfa
 
@@ -113,7 +113,7 @@ module Pegasus
           lex_state_table = dfa.state_table
           lex_final_table = dfa.final_table
 
-          lr_pda = grammar.create_lr_pda(nonterminals.values.find { |it| it.id == 0 })
+          lr_pda = grammar.create_lr_pda
           lalr_pda = grammar.create_lalr_pda(lr_pda)
           parse_state_table = lalr_pda.state_table
           parse_action_table = lalr_pda.action_table

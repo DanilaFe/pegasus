@@ -1,20 +1,16 @@
 module Pegasus
   class TerminalId
-    # Special ID used for the end-of-file character
-    SPECIAL_EOF = -1_i64
-    # Special ID used for the "empty" string in FIRST set computation
-    SPECIAL_EMPTY = -2_i64
-
-    # The ID of this terminal.
-    getter id : Int64
-
     # Creates a new TerminalId with the given ID.
-    def initialize(@id)
+    def initialize(@id : Int64)
+    end
+
+    def table_index
+      return @id + 1
     end
 
     # Compares this terminal to another terminal.
     def ==(other : TerminalId)
-      return @id == other.id
+      return @id == other.@id
     end
 
     # Creates a hash of this TerminalId.
@@ -28,22 +24,64 @@ module Pegasus
     end
   end
 
-  class NonterminalId
-    # The ID of this nonterminal.
-    getter id : Int64
+  class EmptyTerminalId < TerminalId
+    def initialize
+      @id = 0_i64
+    end
+    
+    def table_index
+      raise_general "attempting to compute table index of empty terminal", internal: true
+    end
 
+    def ==(other : EmptyTerminalId)
+      return true
+    end
+
+    def ==(other : TerminalId)
+      return false
+    end
+  end
+
+  class EofTerminalId < TerminalId
+    def initialize
+      @id = 0_i64
+    end
+
+    def table_index
+      return 0_i64
+    end
+
+    def ==(other : EofTerminalId)
+      return true
+    end
+
+    def ==(other : TerminalId)
+      return false
+    end
+  end
+
+  class NonterminalId
     # Creates a new NonterminalId with the given ID.
-    def initialize(@id)
+    def initialize(@id : Int64, @start = false)
+    end
+
+    def table_index
+      return @id + 1
+    end
+
+    def start?
+      return @start
     end
 
     # Compares this nonterminal to another nonterminal.
     def ==(other : NonterminalId)
-      return @id == other.id
+      return (@id == other.@id) && (@start == other.@start)
     end
 
     # Creates a hash of this NonterminalId.
     def hash(hasher)
       @id.hash(hasher)
+      @start.hash(hasher)
       hasher
     end
 

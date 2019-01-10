@@ -12,7 +12,7 @@ module <%= prefix %>
     [ <% state.each do |transition| %> <%= transition %>_i64, <% end %> ],<%- end %>
   ]
   ITEMS = <% if @items.size == 0 %> [] of Tuple(Int64, Int64) <% else %> [<% @items.each do |item| %>
-    { <%= item.head.id %>_i64, <%= item.body.size %>_i64 },<%- end %>
+    { <%= item.head.table_index - 1%>_i64, <%= item.body.size %>_i64 },<%- end %>
   ]<%- end %>
 
   extend self
@@ -34,7 +34,7 @@ module <%= prefix %>
 
     def name
       case nonterminal_id<% @nonterminals.each do |nt| %>
-      when <%= nt[1].id %>_i64
+      when <%= nt[1].table_index - 1 %>_i64
         <%= nt[0].dump -%>
       <%- end %>
       else

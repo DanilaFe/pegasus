@@ -85,7 +85,7 @@ module Pegasus
         language_def.rules.each do |name, bodies|
           head = rule_ids[name]
           bodies.each &.alternatives.each do |body|
-            body = body.elements.map do |element_name|
+            body = body.elements.map(&.name).map do |element_name|
               element = token_ids[element_name]? || rule_ids[element_name]?
               raise_grammar "No terminal or rule named #{element_name}" unless element
               next element

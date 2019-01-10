@@ -40,6 +40,12 @@ module Pegasus
       abstract def get_location_name
     end
 
+    class GeneralException < PegasusException
+      def get_location_name
+        "converting grammar to a parser description"
+      end
+    end
+
     class GrammarException < PegasusException
       def get_location_name
         "parsing the grammar definition"
@@ -81,6 +87,7 @@ macro define_raise(name, class_name)
   end
 end
 
+define_raise(general, GeneralException)
 define_raise(grammar, GrammarException)
 define_raise(nfa, NfaException)
 define_raise(dfa, DfaException)

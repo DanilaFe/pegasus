@@ -18,15 +18,15 @@ def rule(*alternatives)
 end
 
 def nonterminal(id)
-  Pegasus::Pda::Nonterminal.new id.to_i64
+  Pegasus::NonterminalId.new id.to_i64
 end
 
 def terminal(id)
-  Pegasus::Pda::Terminal.new id.to_i64
+  Pegasus::TerminalId.new id.to_i64
 end
 
 def body(*elements)
-  array = [] of Pegasus::Pda::Element
+  array = [] of Pegasus::ElementId
   array.concat elements.to_a
   return array
 end
@@ -36,16 +36,16 @@ def item(head, body)
 end
 
 def pda(*items)
-  terminals = Set(Pegasus::Pda::Terminal).new
-  nonterminals = Set(Pegasus::Pda::Nonterminal).new
+  terminals = Set(Pegasus::TerminalId).new
+  nonterminals = Set(Pegasus::NonterminalId).new
 
   items.to_a.each do |item|
     nonterminals << item.head
     item.body.each do |element|
       case element
-      when Pegasus::Pda::Terminal
+      when Pegasus::TerminalId
         terminals << element
-      when Pegasus::Pda::Nonterminal
+      when Pegasus::NonterminalId
         nonterminals << element
       end
     end

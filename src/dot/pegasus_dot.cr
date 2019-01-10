@@ -32,9 +32,9 @@ def output_pda(data, io)
         if cause == 0
           transition_label = "(EOF)"
         elsif cause - 1 <= data.max_terminal
-          transition_label = data.terminals.key_for(Pegasus::Pda::Terminal.new((cause - 1).to_i64)).dump
+          transition_label = data.terminals.key_for(Pegasus::TerminalId.new((cause - 1).to_i64)).dump
         else
-          transition_label = data.nonterminals.key_for(Pegasus::Pda::Nonterminal.new((cause - 2 - data.max_terminal).to_i64)).dump
+          transition_label = data.nonterminals.key_for(Pegasus::NonterminalId.new((cause - 2 - data.max_terminal).to_i64)).dump
         end
         io << "  #{state_name} -> #{other_state_name} [label=#{transition_label}]\n"
       end

@@ -147,7 +147,7 @@ loop do
     end
     tree_stack << ParentTree.new item.head.id, data.max_terminal,
       new_children,
-      data.nonterminals.key_for(Pegasus::Pda::Nonterminal.new item.head.id)
+      data.nonterminals.key_for(Pegasus::NonterminalId.new item.head.id)
   end
   state_stack << data.parse_state_table[state_stack.last][tree_stack.last.table_index]
 end

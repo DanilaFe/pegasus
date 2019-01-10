@@ -1,32 +1,32 @@
 require "./spec_utils.cr"
 
-describe Pegasus::Pda::Terminal do
+describe Pegasus::TerminalId do
   describe "#==" do
     it "Compares equivalent terminals correctly" do
-      terminal_one = Pegasus::Pda::Terminal.new(0_i64)
-      terminal_two = Pegasus::Pda::Terminal.new(0_i64)
+      terminal_one = Pegasus::TerminalId.new(0_i64)
+      terminal_two = Pegasus::TerminalId.new(0_i64)
       terminal_one.should eq terminal_two
     end
 
     it "Compares different terminals correctly" do
-      terminal_one = Pegasus::Pda::Terminal.new(0_i64)
-      terminal_two = Pegasus::Pda::Terminal.new(1_i64)
+      terminal_one = Pegasus::TerminalId.new(0_i64)
+      terminal_two = Pegasus::TerminalId.new(1_i64)
       terminal_one.should_not eq terminal_two
     end
   end
 end
 
-describe Pegasus::Pda::Nonterminal do
+describe Pegasus::NonterminalId do
   describe "#==" do
     it "Compares equivalent nonterminals correctly" do
-      nonterminal_one = Pegasus::Pda::Nonterminal.new(0_i64)
-      nonterminal_two = Pegasus::Pda::Nonterminal.new(0_i64)
+      nonterminal_one = Pegasus::NonterminalId.new(0_i64)
+      nonterminal_two = Pegasus::NonterminalId.new(0_i64)
       nonterminal_one.should eq nonterminal_two
     end
 
     it "Compares different nonterminals correctly" do
-      nonterminal_one = Pegasus::Pda::Nonterminal.new(0_i64)
-      nonterminal_two = Pegasus::Pda::Nonterminal.new(1_i64)
+      nonterminal_one = Pegasus::NonterminalId.new(0_i64)
+      nonterminal_two = Pegasus::NonterminalId.new(1_i64)
       nonterminal_one.should_not eq nonterminal_two
     end
   end
@@ -35,16 +35,16 @@ end
 describe Pegasus::Pda::Grammar do
   describe "#initialize" do
     it "Doesn't add any items" do
-      grammar = Pegasus::Pda::Grammar.new [] of Pegasus::Pda::Terminal,
-        [] of Pegasus::Pda::Nonterminal
+      grammar = Pegasus::Pda::Grammar.new [] of Pegasus::TerminalId,
+        [] of Pegasus::NonterminalId
       grammar.@items.size.should eq 0
     end
   end
 
   describe "#create_lr_pda" do
     it "Handles empty grammars" do
-      grammar = Pegasus::Pda::Grammar.new [] of Pegasus::Pda::Terminal,
-        [] of Pegasus::Pda::Nonterminal
+      grammar = Pegasus::Pda::Grammar.new [] of Pegasus::TerminalId,
+        [] of Pegasus::NonterminalId
       pda = grammar.create_lr_pda nonterminal 0
       pda.states.size.should eq 1
       pda.states.first.transitions.size.should eq 0

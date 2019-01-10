@@ -1,26 +1,27 @@
 require "json"
 
 module Pegasus
+  class TerminalId
+    JSON.mapping(
+      id: { type: Int64, key: "terminal_id", setter: false }
+    )
+  end
+
+  class NonterminalId
+    JSON.mapping(
+      id: { type: Int64, key: "nonterminal_id", setter: false }
+    )
+  end
+
   module Pda
-    class Terminal
-      JSON.mapping(
-        id: { type: Int64, key: "terminal_id", setter: false }
-      )
-    end
-
-    class Nonterminal
-      JSON.mapping(
-        id: { type: Int64, key: "nonterminal_id", setter: false }
-      )
-    end
-
     class Item
       JSON.mapping(
-        head: { type: Nonterminal, setter: false },
-        body: { type: Array(Terminal | Nonterminal), setter: false }
+        head: { type: NonterminalId, setter: false },
+        body: { type: Array(TerminalId | NonterminalId), setter: false }
       )
     end
   end
+
   module Language
     class LanguageData
       JSON.mapping(
@@ -30,8 +31,8 @@ module Pegasus
         parse_state_table: { type: Array(Array(Int64)), setter: false },
         parse_action_table: { type: Array(Array(Int64)), setter: false },
 
-        terminals: { type: Hash(String, Pegasus::Pda::Terminal), setter: false },
-        nonterminals: { type: Hash(String, Pegasus::Pda::Nonterminal), setter: false },
+        terminals: { type: Hash(String, Pegasus::TerminalId), setter: false },
+        nonterminals: { type: Hash(String, Pegasus::NonterminalId), setter: false },
         items: { type: Array(Pegasus::Pda::Item), setter: false },
         max_terminal: { type: Int64, setter: false }
       )

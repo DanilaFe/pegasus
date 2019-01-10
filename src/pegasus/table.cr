@@ -42,7 +42,7 @@ module Pegasus
       def insert_shift?(action_table, state)
         return if done?
         next_element = item.body[index]
-        return if !next_element.is_a?(Terminal)
+        return if !next_element.is_a?(TerminalId)
 
         previous_value = action_table[state.id + 1][next_element.id + 1]
         if previous_value > 0
@@ -78,7 +78,7 @@ module Pegasus
       # at the given state and the lookhead token.
       def action_table
         max_terminal = @items.max_of? do |item|
-          item.body.select(&.is_a?(Terminal)).max_of?(&.id) || 0_i64
+          item.body.select(&.is_a?(TerminalId)).max_of?(&.id) || 0_i64
         end || -1_i64
 
         # +1 for potential -1, +1 since terminal IDs start at 0.
@@ -96,11 +96,11 @@ module Pegasus
       # Creates a transition table that is indexed by both Terminals and Nonterminals.
       def state_table
         max_terminal = @items.max_of? do |item|
-          item.body.select(&.is_a?(Terminal)).max_of?(&.id) || -1_i64
+          item.body.select(&.is_a?(TerminalId)).max_of?(&.id) || -1_i64
         end || -1_i64
 
         max_nonterminal = @items.max_of? do |item|
-          Math.max(item.head.id, item.body.select(&.is_a?(Nonterminal)).max_of?(&.id) || -1_i64)
+          Math.max(item.head.id, item.body.select(&.is_a?(NonterminalId)).max_of?(&.id) || -1_i64)
         end || -1_i64
 
         # +1 for potential -1 in terminal, +1 + 1 because both terminal and nonterminals start at 0.
@@ -108,9 +108,9 @@ module Pegasus
         @states.each do |state|
           state.transitions.each do |token, to|
             case token
-            when Terminal
+            when TerminalId
               table[state.id + 1][token.id + 1] = to.id + 1
-            when Nonterminal
+            when NonterminalId
               table[state.id + 1][token.id + 1 + 1 + max_terminal] = to.id + 1
             end
           end

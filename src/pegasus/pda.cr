@@ -4,10 +4,10 @@ require "./items.cr"
 
 module Pegasus
   module Pda
-    alias PState = State(Set(LookaheadItem), Element)
+    alias PState = State(Set(LookaheadItem), ElementId)
 
     # A class that represents the (LA)LR Push Down Automaton.
-    class Pda < UniqueAutomaton(Set(LookaheadItem), Element)
+    class Pda < UniqueAutomaton(Set(LookaheadItem), ElementId)
       def initialize(@items : Array(Item))
         super()
       end

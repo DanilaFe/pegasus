@@ -8,10 +8,10 @@ module Pegasus
     class Item
       # The nonterminal on the left of the production rule,
       # into which the right hand side is converted.
-      getter head : Nonterminal
+      getter head : NonterminalId
       # The body of terminals and nonterminals on the right
       # of the production rule.
-      getter body : Array(Terminal | Nonterminal)
+      getter body : Array(ElementId)
 
       # Creates a new item with the given head and body.
       def initialize(@head, @body)
@@ -91,7 +91,7 @@ module Pegasus
     # in LR(1) parser construction.
     class LookaheadItem < DottedItem
       # The lookahead set of this dotted item.
-      getter lookahead : Set(Terminal)
+      getter lookahead : Set(TerminalId)
 
       # Creates a new lookahead dotted item.
       def initialize(@item, @lookahead, @index = 0_i64)

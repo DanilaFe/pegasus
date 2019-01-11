@@ -37,7 +37,7 @@ long int parse_action_table[<%= @parse_action_table.size %>][<%= @parse_action_t
 };
 pgs_item items[<%= @items.size %>] = {
 <% @items.each do |item| -%>
-    { <%= item.head.table_index - 1 %>, <%= item.body.size %> },
+    { <%= item.head.raw_id %>, <%= item.body.size %> },
 <% end -%>
 };
 

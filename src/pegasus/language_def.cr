@@ -56,7 +56,7 @@ module Pegasus
         @lex_skip_table, @lex_state_table, @lex_final_table,
           @parse_state_table, @parse_action_table =
           generate_tables(language_definition, @terminals, @nonterminals, grammar)
-        @max_terminal = @terminals.values.max_of?(&.table_index.-(1)) || 0_i64
+        @max_terminal = @terminals.values.max_of?(&.raw_id) || 0_i64
         @items = grammar.items
       end
 
@@ -103,7 +103,7 @@ module Pegasus
       private def generate_tables(language_def, terminals, nonterminals, grammar)
         nfa = Pegasus::Nfa::Nfa.new
         terminals.each do |terminal, value|
-          nfa.add_regex language_def.tokens[terminal].regex, value.table_index - 1
+          nfa.add_regex language_def.tokens[terminal].regex, value.raw_id
         end
         dfa = nfa.dfa
 

@@ -4,6 +4,10 @@ module Pegasus
     def initialize(@id : Int64)
     end
 
+    def raw_id
+      return @id
+    end
+
     def table_index
       return @id + 1
     end
@@ -29,6 +33,10 @@ module Pegasus
       @id = 0_i64
     end
     
+    def raw_id
+      raise_general "attempting to get raw ID of empty terminal", internal: true
+    end
+
     def table_index
       raise_general "attempting to compute table index of empty terminal", internal: true
     end
@@ -45,6 +53,10 @@ module Pegasus
   class EofTerminalId < TerminalId
     def initialize
       @id = 0_i64
+    end
+
+    def raw_id
+      raise_general "attempting to get raw ID of EOF terminal", internal: true
     end
 
     def table_index

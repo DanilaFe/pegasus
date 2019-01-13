@@ -79,7 +79,7 @@ module Pegasus
     end
 
     # A nonterminal, as specified by the user. Nonterminals are on the left of production rules (though they can also
-    # appear on the right.
+    # appear on the right).
     class NonterminalId
       # Creates a new NonterminalId with the given ID.
       def initialize(@id : Int64, @start = false)

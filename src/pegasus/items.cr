@@ -11,7 +11,7 @@ module Pegasus
       getter head : NonterminalId
       # The body of terminals and nonterminals on the right
       # of the production rule.
-      getter body : Array(ElementId)
+      getter body : Array(NonterminalId | TerminalId)
 
       # Creates a new item with the given head and body.
       def initialize(@head, @body)
@@ -91,7 +91,7 @@ module Pegasus
     # in LR(1) parser construction.
     class LookaheadItem < DottedItem
       # The lookahead set of this dotted item.
-      getter lookahead : Set(TerminalId)
+      getter lookahead : Set(LookaheadElement)
 
       # Creates a new lookahead dotted item.
       def initialize(@item, @lookahead, @index = 0_i64)

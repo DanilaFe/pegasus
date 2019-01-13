@@ -26,7 +26,7 @@ def terminal(id)
 end
 
 def body(*elements)
-  array = [] of Pegasus::ElementId
+  array = [] of Pegasus::TerminalId | Pegasus::NonterminalId
   array.concat elements.to_a
   return array
 end

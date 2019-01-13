@@ -22,7 +22,7 @@ module Pegasus
       # Checks if the given set contains the empty set. This is used for computing
       # FIRST and lookahead sets when generating an (LA)LR automaton.
       private def contains_empty(set)
-        return set.select(&.is_a?(EmptyTerminalId)).size != 0
+        return set.select(&.is_a?(EmptyElement)).size != 0
       end
 
       # Concatenates a set with another set, and returns whether the size of the set
@@ -40,7 +40,7 @@ module Pegasus
       # and only contains the SPECIAL_EMPTY terminal.
       private def compute_alternative_first(first_sets, alternative)
         if !first_sets.has_key? alternative
-          first = Set(TerminalId).new
+          first = Set(LookaheadElement).new
           first_sets[alternative] = first
         else
           first = first_sets[alternative]
@@ -57,7 +57,7 @@ module Pegasus
             compute_alternative_first(first_sets, tail)
             add_first.concat first_sets[tail]
         else
-            add_first = add_first.reject &.is_a?(EmptyTerminalId)
+            add_first = add_first.reject &.is_a?(EmptyElement)
         end
 
         return concat_watching(first, add_first)
@@ -77,10 +77,10 @@ module Pegasus
       # and alternative tails by examining the items, terminals, and nonterminals given
       # in `#initialize`
       private def compute_first
-        first_sets = Hash(ElementId | Array(ElementId), Set(TerminalId)).new
-        @terminals.each { |t| first_sets[t] = Set { t } }
-        @nonterminals.each { |nt| first_sets[nt] = Set(TerminalId).new }
-        first_sets[[] of ElementId] = Set(TerminalId) { EmptyTerminalId.new }
+        first_sets = Hash(NonterminalId | TerminalId | Array(NonterminalId | TerminalId), Set(LookaheadElement)).new
+        @terminals.each { |t| first_sets[t] = Set(LookaheadElement) { t } }
+        @nonterminals.each { |nt| first_sets[nt] = Set(LookaheadElement).new }
+        first_sets[[] of NonterminalId | TerminalId] = Set(LookaheadElement) { EmptyElement.new }
         change_occured = true
 
         while change_occured
@@ -99,7 +99,7 @@ module Pegasus
         lookahead = first_sets[alternative].dup
         if contains_empty(lookahead)
           lookahead.concat(old_lookahead)
-          lookahead = lookahead.reject &.is_a?(EmptyTerminalId)
+          lookahead = lookahead.reject &.is_a?(EmptyElement)
         end
         return lookahead.to_set
       end
@@ -118,7 +118,7 @@ module Pegasus
       private def new_dots(first_sets, dots)
         dots.map do |dot|
           next Set(LookaheadItem).new if dot.index >= dot.item.body.size
-          next Set(LookaheadItem).new if dot.item.body[dot.index].is_a?(TerminalId)
+          next Set(LookaheadItem).new if dot.item.body[dot.index].is_a?(LookaheadElement)
           next create_dotted_items(first_sets, dot.item.body[dot.index], dot.item.body[(dot.index+1)...dot.item.body.size], dot.lookahead)
         end.reduce(Set(LookaheadItem).new) do |set, list|
           set.concat list
@@ -133,7 +133,7 @@ module Pegasus
         groups = found_dots.group_by { |dot| { dot.item, dot.index } }
         found_dots = groups.map do |k, v|
           item, index = k
-          merged_lookahead = v.map(&.lookahead).reduce(Set(TerminalId).new) { |l, r| l.concat r }
+          merged_lookahead = v.map(&.lookahead).reduce(Set(LookaheadElement).new) { |l, r| l.concat r }
           LookaheadItem.new item, merged_lookahead, index
         end
         return found_dots.to_set
@@ -145,7 +145,7 @@ module Pegasus
         return dotted_items.compact_map do |dot|
             next nil unless dot.index < dot.item.body.size
             next { dot.item.body[dot.index], dot.next_item }
-        end.reduce(Hash(ElementId, Set(LookaheadItem)).new) do |hash, kv|
+        end.reduce(Hash(NonterminalId | TerminalId, Set(LookaheadItem)).new) do |hash, kv|
            k, v = kv
            hash[k] = hash[k]?.try(&.<<(v)) || Set { v }
            next hash
@@ -190,7 +190,7 @@ module Pegasus
         first_sets = compute_first
         # Set of items starting with the start nonterminal
         start_items = @items.select(&.head.start?).map do |it|
-          LookaheadItem.new it, Set(TerminalId) { EofTerminalId.new }
+          LookaheadItem.new it, Set(LookaheadElement) { EofElement.new }
         end
         # Set of all current dotted items
         all_start_items = all_dots(first_sets, start_items)

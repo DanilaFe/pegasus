@@ -97,7 +97,7 @@ module Pegasus
       # Creates a transition table that is indexed by both Terminals and Nonterminals.
       def state_table
         last_terminal_index = @items.max_of? do |item|
-          item.body.select(&.is_a?(IndexableElement)).max_of?(&.table_index) || 0_i64
+          item.body.select(&.is_a?(TerminalId)).max_of?(&.table_index) || 0_i64
         end || 0_i64
 
         last_nonterminal_index = @items.max_of? do |item|

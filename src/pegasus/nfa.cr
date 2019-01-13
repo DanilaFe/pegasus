@@ -2,7 +2,7 @@ require "./automaton.cr"
 
 module Pegasus
   module Nfa
-    alias NState = State(Int64?, Transition)
+    alias NState = Automata::State(Int64?, Transition)
 
     # A transition class used to represent the possible transitions
     # possible in the NFA.
@@ -42,7 +42,7 @@ module Pegasus
 
     # A nondeterministic finite automaton, to be created
     # from regular expressions.
-    class Nfa < Automaton(Int64?, Transition)
+    class Nfa < Automata::Automaton(Int64?, Transition)
       # Creates a new Nfa with a start state.
       def initialize
         super

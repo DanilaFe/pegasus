@@ -42,7 +42,7 @@ module Pegasus
       def insert_shift?(action_table, state)
         return if done?
         next_element = item.body[index]
-        return if !next_element.is_a?(IndexableElement)
+        return if !next_element.is_a?(Elements::IndexableElement)
 
         previous_value = action_table[state.id + 1][next_element.table_index]
         if previous_value > 0
@@ -57,7 +57,7 @@ module Pegasus
         return if !done?
 
         @lookahead.each do |terminal|
-          next unless terminal.is_a?(IndexableElement)
+          next unless terminal.is_a?(Elements::IndexableElement)
           previous_value = action_table[state.id + 1][terminal.table_index]
           if previous_value == 0
             raise_table "Shift / reduce conflict", context_data: [
@@ -79,7 +79,7 @@ module Pegasus
       # at the given state and the lookhead token.
       def action_table
         last_terminal_index = @items.max_of? do |item|
-          item.body.select(&.is_a?(IndexableElement)).max_of?(&.table_index) || 1_i64
+          item.body.select(&.is_a?(Elements::IndexableElement)).max_of?(&.table_index) || 1_i64
         end || 0_i64
 
         # +1 Because the EOF token has its own spot, too.
@@ -97,11 +97,11 @@ module Pegasus
       # Creates a transition table that is indexed by both Terminals and Nonterminals.
       def state_table
         last_terminal_index = @items.max_of? do |item|
-          item.body.select(&.is_a?(TerminalId)).max_of?(&.table_index) || 0_i64
+          item.body.select(&.is_a?(Elements::TerminalId)).max_of?(&.table_index) || 0_i64
         end || 0_i64
 
         last_nonterminal_index = @items.max_of? do |item|
-          Math.max(item.head.table_index, item.body.select(&.is_a?(NonterminalId)).max_of?(&.table_index) || 0_i64)
+          Math.max(item.head.table_index, item.body.select(&.is_a?(Elements::NonterminalId)).max_of?(&.table_index) || 0_i64)
         end || 0_i64
 
         # +1 Because the EOF token has its own spot, too.
@@ -109,9 +109,9 @@ module Pegasus
         @states.each do |state|
           state.transitions.each do |token, to|
             case token
-            when IndexableElement
+            when Elements::IndexableElement
               table[state.id + 1][token.table_index] = to.id + 1
-            when NonterminalId
+            when Elements::NonterminalId
               table[state.id + 1][token.table_index + last_terminal_index] = to.id + 1
             end
           end

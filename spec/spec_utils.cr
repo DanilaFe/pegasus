@@ -18,15 +18,15 @@ def rule(*alternatives)
 end
 
 def nonterminal(id, start = false)
-  Pegasus::NonterminalId.new id.to_i64, start
+  Pegasus::Elements::NonterminalId.new id.to_i64, start
 end
 
 def terminal(id)
-  Pegasus::TerminalId.new id.to_i64
+  Pegasus::Elements::TerminalId.new id.to_i64
 end
 
 def body(*elements)
-  array = [] of Pegasus::TerminalId | Pegasus::NonterminalId
+  array = [] of Pegasus::Elements::TerminalId | Pegasus::Elements::NonterminalId
   array.concat elements.to_a
   return array
 end
@@ -36,16 +36,16 @@ def item(head, body)
 end
 
 def pda(*items)
-  terminals = Set(Pegasus::TerminalId).new
-  nonterminals = Set(Pegasus::NonterminalId).new
+  terminals = Set(Pegasus::Elements::TerminalId).new
+  nonterminals = Set(Pegasus::Elements::NonterminalId).new
 
   items.to_a.each do |item|
     nonterminals << item.head
     item.body.each do |element|
       case element
-      when Pegasus::TerminalId
+      when Pegasus::Elements::TerminalId
         terminals << element
-      when Pegasus::NonterminalId
+      when Pegasus::Elements::NonterminalId
         nonterminals << element
       end
     end
@@ -61,7 +61,7 @@ def pda(*items)
   return lalr_pda
 end
 
-class Pegasus::State(V, T)
+class Pegasus::Automata::State(V, T)
   def pattern_id
     @data.compact_map(&.data).max_of?(&.+(1)) || 0_i64
   end

@@ -39,9 +39,9 @@ module Pegasus
       getter parse_action_table : Array(Array(Int64))
 
       # The terminals, and their original names / regular expressions.
-      getter terminals : Hash(String, Pegasus::TerminalId)
+      getter terminals : Hash(String, Pegasus::Elements::TerminalId)
       # The nonterminals, and their original names.
-      getter nonterminals : Hash(String, Pegasus::NonterminalId)
+      getter nonterminals : Hash(String, Pegasus::Elements::NonterminalId)
       # The items in the language. Used for reducing / building up
       # trees once a reduce action is performed.
       getter items : Array(Pegasus::Pda::Item)
@@ -75,10 +75,10 @@ module Pegasus
       # the terminals and nonterminals.
       private def generate_grammar(language_def)
         token_ids = assign_ids(language_def.tokens.keys) do |i|
-          Pegasus::TerminalId.new i
+          Pegasus::Elements::TerminalId.new i
         end
         rule_ids = assign_ids(language_def.rules.keys) do |i|
-          Pegasus::NonterminalId.new i, start: i == 0
+          Pegasus::Elements::NonterminalId.new i, start: i == 0
         end
 
         grammar = Pegasus::Pda::Grammar.new token_ids.values, rule_ids.values

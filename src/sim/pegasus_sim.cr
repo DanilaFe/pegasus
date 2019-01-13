@@ -2,55 +2,57 @@ require "../pegasus/language_def.cr"
 require "../pegasus/json.cr"
 require "option_parser"
 
-class Token
-  getter id : Int64
-  getter string : String
+module Pegasus::Sim
+  class Token
+    getter id : Int64
+    getter string : String
 
-  def initialize(@id, @string)
+    def initialize(@id, @string)
+    end
+
+    def to_s(io)
+      io << "Token(" << id << ", " << string << ")"
+    end
   end
 
-  def to_s(io)
-    io << "Token(" << id << ", " << string << ")"
-  end
-end
+  abstract class Tree
+    abstract def table_index : Int64
 
-abstract class Tree
-  abstract def table_index : Int64
-
-  def display(io, offset)
-  end
-end
-
-class TokenTree < Tree
-  def initialize(@token : Token)
+    def display(io, offset)
+    end
   end
 
-  def table_index
-    @token.id
+  class TokenTree < Tree
+    def initialize(@token : Token)
+    end
+
+    def table_index
+      @token.id
+    end
+
+    def display(io, offset)
+      offset.times { io << "  " }
+      io << @token
+      io.puts
+    end
   end
 
-  def display(io, offset)
-    offset.times { io << "  " }
-    io << @token
-    io.puts
-  end
-end
+  class ParentTree < Tree
+    getter children : Array(Tree)
 
-class ParentTree < Tree
-  getter children : Array(Tree)
+    def initialize(@nonterminal_id : Int64, @max_terminal : Int64, @children = [] of Tree, @name : String? = nil)
+    end
 
-  def initialize(@nonterminal_id : Int64, @max_terminal : Int64, @children = [] of Tree, @name : String? = nil)
-  end
+    def table_index
+      @max_terminal + 1 + 1 + @nonterminal_id
+    end
 
-  def table_index
-    @max_terminal + 1 + 1 + @nonterminal_id
-  end
-
-  def display(io, offset)
-    offset.times { io << "  " }
-    io << "ParentTree(" << (@name || @nonterminal_id) << ")"
-    io.puts
-    @children.each { |child| child.display(io, offset + 1) }
+    def display(io, offset)
+      offset.times { io << "  " }
+      io << "ParentTree(" << (@name || @nonterminal_id) << ")"
+      io.puts
+      @children.each { |child| child.display(io, offset + 1) }
+    end
   end
 end
 
@@ -80,7 +82,7 @@ to_parse = STDIN.gets_to_end.chomp
 
 # Lexing code
 
-tokens = [] of Token
+tokens = [] of Pegasus::Sim::Token
 # Index at the string
 index = 0_i64
 # The last "final" match.
@@ -109,7 +111,7 @@ while index < to_parse.size
 
   break if last_final == -1
   next if data.lex_skip_table[last_final]
-  tokens << Token.new last_final, to_parse[last_start..last_final_index]
+  tokens << Pegasus::Sim::Token.new last_final, to_parse[last_start..last_final_index]
 end
 
 raise "Invalid token at position #{index}" unless index == to_parse.size
@@ -120,7 +122,7 @@ raise "Invalid token at position #{index}" unless index == to_parse.size
 # of the two types of variables on the stack separately.
 
 # The stack of trees being assembled from the bottom up.
-tree_stack = [] of Tree
+tree_stack = [] of Pegasus::Sim::Tree
 # The stack of the states to be followed by the automaton.
 state_stack = [ 1_i64 ]
 # The index in the tokens
@@ -135,17 +137,17 @@ loop do
   raise "Invalid token at position #{index}" if action == -1_i64
   if action == 0
     raise "Unexpected end of file" unless index < tokens.size
-    tree_stack << TokenTree.new tokens[index]
+    tree_stack << Pegasus::Sim::TokenTree.new tokens[index]
     index += 1
   else
     item = data.items[action - 1]
-    new_children = [] of Tree
+    new_children = [] of Pegasus::Sim::Tree
 
     item.body.size.times do
       new_children.insert 0, tree_stack.pop
       state_stack.pop
     end
-    tree_stack << ParentTree.new item.head.raw_id, data.max_terminal,
+    tree_stack << Pegasus::Sim::ParentTree.new item.head.raw_id, data.max_terminal,
       new_children,
       data.nonterminals.key_for(Pegasus::Elements::NonterminalId.new item.head.raw_id)
   end

@@ -1,4 +1,7 @@
 module Pegasus
+  # This module contains "elements" which are part of a production. Generally, elements
+  # are terminals and nonterminals. Additionaly, special-case elements for certain
+  # algorithms are contained here (the EOF element and the Empty element)
   module Elements
     # An item that can be in a lookahead item's follow set.
     # This could be a terminal ID, or the special reserved EOF and "empty" (epsilon)

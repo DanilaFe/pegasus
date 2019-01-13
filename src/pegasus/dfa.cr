@@ -2,6 +2,8 @@ require "./automaton.cr"
 require "./nfa.cr"
 
 module Pegasus
+  # This module is for deterministic finite automata.
+  # DFAs are used in Pegasus to describe the tokenizer state machine.
   module Dfa
     alias DState = Automata::State(Set(Nfa::NState), UInt8)
 

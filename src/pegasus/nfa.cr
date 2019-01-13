@@ -1,6 +1,11 @@
 require "./automaton.cr"
 
 module Pegasus
+  # This module is for nondeterministic finite automata. While NFAs
+  # aren't very good for directly creating state machines
+  # (you need to keep track of an exponential number of potential states),
+  # they are easier to construct. This module contains functionality to convert
+  # regular expressions to NFAs.
   module Nfa
     alias NState = Automata::State(Int64?, Transition)
 

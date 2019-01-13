@@ -3,6 +3,10 @@ require "./items.cr"
 require "./pda.cr"
 
 module Pegasus
+  # This module holds code related to push down automata, as well
+  # as other helper code such as items (productions, basically),
+  # dotted items (productions which know what part of the production
+  # has already been parsed) and the like.
   module Pda
     # A Grammar associated with the language, contianing a list of terminals,
     # nonterminals, and the context-free production rules given by the `Item` class.

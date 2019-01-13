@@ -9,7 +9,14 @@ require "./error.cr"
 require "./generated/grammar_parser.cr"
 
 module Pegasus
+  # This module is for handling language data. The language is given by the complete
+  # Pegasus grammar, and includes the terminals, nonterminals, and other rules.
+  # This module also contains `LanguageData`, which is the JSON structure
+  # that is passed between pegasus and its consumer programs, like pegasus-c.
   module Language
+    # An error context which reports the items involved in some kind of conflict
+    # (shift / reduce or reduce / reduce). This version, unlike `ConflictErrorContext`,
+    # reports the relevant items' names.
     class NamedConflictErrorContext < Pegasus::Error::ErrorContext
       def initialize(@nonterminals : Array(String))
       end
@@ -139,6 +146,7 @@ module Pegasus
     class Pegasus::Generated::Tree
       alias SelfDeque = Deque(Pegasus::Generated::Tree)
 
+      # Recursive call for the `#flatten` function.
       protected def flatten_recursive(*, value_index : Int32, recursive_name : String, recursive_index : Int32) : SelfDeque
         if flattened = self.as?(Pegasus::Generated::NonterminalTree)
           recursive_child = flattened.children[recursive_index]?
@@ -284,6 +292,7 @@ module Pegasus
         from_io(io)
       end
 
+      # Creates a list of options from a "statemend end" parse tree node.
       private def extract_options(statement_end_tree)
         statement_end_tree = statement_end_tree.as(Pegasus::Generated::NonterminalTree)
         return [] of Option unless statement_end_tree.children.size > 1
@@ -294,6 +303,8 @@ module Pegasus
           .map(&.as(Pegasus::Generated::TerminalTree).string)
       end
 
+      # Extracts all the tokens from the token list parse tree node, storing them
+      # in a member variable hash.
       private def extract_tokens(token_list_tree)
         token_list_tree.flatten(value_index: 0, recursive_name: "token_list", recursive_index: 1)
           .map { |it| ntt = it.as(Pegasus::Generated::NonterminalTree); { ntt.children[1], ntt.children[3], ntt.children[4] } }
@@ -308,6 +319,8 @@ module Pegasus
           end
       end
 
+      # Extracts all the body definitions from the grammar bodies tree node.
+      # A rule has several bodies.
       private def extract_bodies(bodies_tree)
         bodies_tree.flatten(value_index: 0, recursive_name: "grammar_bodies", recursive_index: 2)
           .map do |body|
@@ -318,6 +331,8 @@ module Pegasus
         end
       end
 
+      # Extracts all the rules from a gramamr list tree node, storin them
+      # in a member variable hash.
       private def extract_rules(grammar_list_tree)
         grammar_list_tree.flatten(value_index: 0, recursive_name: "grammar_list", recursive_index: 1)
           .map { |it| ntt = it.as(Pegasus::Generated::NonterminalTree); { ntt.children[1], ntt.children[3], ntt.children[4] } }

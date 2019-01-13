@@ -1,4 +1,7 @@
 module Pegasus
+  # This module contains automata-related code. Since Pegasus uses
+  # Deterministic, nondeterministic, and push-down automata, there is a lot
+  # of common code. This module is for the common code.
   module Automata
     # A generic state for an automaton, with transitions
     # labeled by T and values of V.

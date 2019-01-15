@@ -269,6 +269,7 @@ module Pegasus
       getter elements : Array(RuleElement)
 
       def initialize(@elements)
+        raise_grammar "Empty productions are currently not supported" if elements.empty?
       end
 
       def ==(other : RuleAlternative)

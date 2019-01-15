@@ -289,9 +289,15 @@ module Pegasus
       # Computes the variants created by optionals.
       # For example, a? b? has four variants, a b, a, b, <empty>.
       def compute_optional_variants
-        optional_positions = @elements.indices(&.is_a?(OptionalElement))
+        return compute_optional_variants &.is_a?(OptionalElement)
+      end
+
+      # Same as compute_optional_variants, but what's optional is
+      # now decided by the block.
+      def compute_optional_variants(&block)
+        optional_positions = @elements.indices { |it| yield it }
         power_set = optional_positions.power_set
-        power_set.map { |it| compute_variant(it) }
+        return power_set.map { |it| compute_variant(it) }
       end
     end
 

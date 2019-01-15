@@ -149,7 +149,7 @@ loop do
     end
     tree_stack << Pegasus::Sim::ParentTree.new item.head.raw_id, data.max_terminal,
       new_children,
-      data.nonterminals.key_for(Pegasus::Elements::NonterminalId.new item.head.raw_id)
+      data.nonterminals.find { |k, v| v.raw_id == item.head.raw_id }.not_nil![0]
   end
   state_stack << data.parse_state_table[state_stack.last][tree_stack.last.table_index]
 end

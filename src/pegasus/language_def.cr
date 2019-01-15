@@ -210,6 +210,34 @@ module Pegasus
       end
     end
 
+    class ::Array(T)
+      # Gets the indices of all values matching the condition
+      def indices(&block)
+        deque = Deque(Int32).new
+        each_with_index do |v, i|
+          deque << i if yield v
+        end
+        return deque.to_a
+      end
+    end
+
+    module ::Iterable(T)
+      def power_set
+        set = Set(Set(T)).new
+        set << Set(T).new
+
+        each do |item|
+          to_add = Set(Set(T)).new
+          set.each do |subset|
+            to_add << subset.dup.<<(item)
+          end
+          set.concat to_add
+        end
+
+        return set
+      end
+    end
+
     # An element of a grammar rule. Can be either a token or another rule.
     class RuleElement
       # The name of the element, as specified in the grammar.
@@ -246,10 +274,28 @@ module Pegasus
       def ==(other : RuleAlternative)
         return @elements == other.elements
       end
+
+      # Computes a single variant, given optional indices that should be included.
+      private def compute_variant(indices)
+        new_elements = [] of RuleElement
+        elements.each_with_index do |element, index|
+          next if element.is_a?(OptionalElement) && !indices.includes? index
+          new_elements << element
+        end
+        return RuleAlternative.new(new_elements)
+      end
+
+      # Computes the variants created by optionals.
+      # For example, a? b? has four variants, a b, a, b, <empty>.
+      def compute_optional_variants
+        optional_positions = @elements.indices(&.is_a?(OptionalElement))
+        power_set = optional_positions.power_set
+        power_set.map { |it| compute_variant(it) }
+      end
     end
 
     # A single rule. This can have one or more alternatives,
-    # but has the same rules (zero or more) applied to them.
+    # but has the same options (zero or more) applied to them.
     class Rule < OptionObject
       getter alternatives : Array(RuleAlternative)
 
@@ -264,6 +310,11 @@ module Pegasus
         @alternatives.hash(hasher)
         @options.hash(hasher)
         hasher
+      end
+
+      # Creates a new rule with the same options, but with alternatives expanded for optional values.
+      def compute_optional_variants
+        return Rule.new(@alternatives.flat_map &.compute_optional_variants, @options)
       end
     end
 
@@ -323,7 +374,12 @@ module Pegasus
         grammar_element_tree = grammar_element_tree.as(Pegasus::Generated::NonterminalTree)
         name = grammar_element_tree.children[0].as(Pegasus::Generated::TerminalTree).string
         setting = grammar_element_tree.children[1]?.try { |it| it.as(Pegasus::Generated::TerminalTree).string }
-        return RuleElement.new name
+        return case setting
+               when "?"
+                 OptionalElement.new name
+               else
+                 RuleElement.new name
+               end
       end
 
       # Extracts all the body definitions from the grammar bodies tree node.
@@ -352,7 +408,7 @@ module Pegasus
             unless old_rules = @rules[name]?
               @rules[name] = old_rules = Array(Rule).new
             end
-            old_rules << Rule.new bodies, extract_options(statement_end)
+            old_rules << Rule.new(bodies, extract_options(statement_end)).compute_optional_variants
           end
       end
 

@@ -319,6 +319,13 @@ module Pegasus
           end
       end
 
+      private def extract_rule_element(grammar_element_tree)
+        grammar_element_tree = grammar_element_tree.as(Pegasus::Generated::NonterminalTree)
+        name = grammar_element_tree.children[0].as(Pegasus::Generated::TerminalTree).string
+        setting = grammar_element_tree.children[1]?.try { |it| it.as(Pegasus::Generated::TerminalTree).string }
+        return RuleElement.new name
+      end
+
       # Extracts all the body definitions from the grammar bodies tree node.
       # A rule has several bodies.
       private def extract_bodies(bodies_tree)
@@ -326,8 +333,7 @@ module Pegasus
           .map do |body|
             RuleAlternative.new body
               .flatten(value_index: 0, recursive_name: "grammar_body", recursive_index: 1)
-              .map(&.as(Pegasus::Generated::TerminalTree).string)
-              .map { |it| RuleElement.new it }
+              .map { |it| extract_rule_element(it) }
         end
       end
 

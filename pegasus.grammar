@@ -11,6 +11,7 @@ token closed_square = /\]/;
 token open_parenth = /\(/;
 token closed_parenth = /\)/;
 token comma = /,/;
+token optional = /\?/;
 
 rule S = token_list grammar_list | token_list | grammar_list;
 rule token_list = token_def | token_def token_list;
@@ -18,7 +19,8 @@ rule token_def = keyword_token identifier equals_delimiter regex statement_end;
 rule grammar_list = grammar_rule | grammar_rule grammar_list;
 rule grammar_rule = keyword_rule identifier equals_delimiter grammar_bodies statement_end;
 rule grammar_bodies = grammar_body | grammar_body or_delimiter grammar_bodies;
-rule grammar_body = identifier | identifier grammar_body;
+rule grammar_body = grammar_element | grammar_element grammar_body;
+rule grammar_element = identifier | identifier optional;
 rule statement_end = options semicolon_delimiter | semicolon_delimiter;
 rule options = open_square options_list closed_square;
 rule options_list = option | option comma options_list;

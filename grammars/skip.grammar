@@ -1,0 +1,3 @@
+token whitespace = /[ \n\t]+/ [ skip ];
+token hello = /hello/;
+rule S = hello hello;

@@ -1,0 +1,4 @@
+token hello = /hello/;
+rule S = A | B;
+rule A = hello;
+rule B = hello;

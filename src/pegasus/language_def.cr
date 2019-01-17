@@ -249,10 +249,33 @@ module Pegasus
       def ==(other : RuleElement)
         return @name == other.name
       end
+
+      # If called in a child class of RuleElement,
+      # this strips the child class of its additional data,
+      # turning it back into a RuleElement base class.
+      def base_element
+        return self
+      end
+
+      # Checks if this element derives lambda.
+      # This doesm't check if the production rule it
+      # represent can derive lambda; rather, it checks
+      # if this element has an operator applied to it
+      # that makes it do so, like ? or *
+      def derives_lambda?
+        return false
+      end
     end
 
     # An element that is optional.
     class OptionalElement < RuleElement
+      def base_element
+        return RuleElement.new name
+      end
+
+      def derives_lambda?
+        return true
+      end
     end
 
     # An element that is repeated one or more times.
@@ -261,6 +284,9 @@ module Pegasus
 
     # An element that is repeated zero or more times.
     class ZeroOrMoreElement < RuleElement
+      def derives_lambda?
+        return true
+      end
     end
 
     # One of the alternatives of a rule. 
@@ -280,16 +306,32 @@ module Pegasus
       private def compute_variant(indices)
         new_elements = [] of RuleElement
         elements.each_with_index do |element, index|
-          next if element.is_a?(OptionalElement) && !indices.includes? index
-          new_elements << element
+          next if element.derives_lambda? && !indices.includes? index
+          new_elements << element.base_element
         end
         return RuleAlternative.new(new_elements)
+      end
+
+      # Checks if this specific alternative is the lambda alternative.
+      def lambda?
+        return @elements.empty?
+      end
+
+      # Determines if this rule alternative can be empty, or derive lambda.
+      def derives_lambda?
+        return derives_lambda? &.derives_lambda?
+      end
+
+      # Determines if the rule alternative can be empty, using
+      # the block to check whether each element can be empty or not.
+      def derives_lambda?(&block)
+        return @elements.all? { |it| yield it }
       end
 
       # Computes the variants created by optionals.
       # For example, a? b? has four variants, a b, a, b, <empty>.
       def compute_optional_variants
-        return compute_optional_variants &.is_a?(OptionalElement)
+        return compute_optional_variants &.derives_lambda?
       end
 
       # Same as compute_optional_variants, but what's optional is
@@ -319,9 +361,26 @@ module Pegasus
         hasher
       end
 
+      # Checks if this rule has any alternatives that can derive lambda.
+      def derives_lambda?
+        return @alternatives.any? &.derives_lambda?
+      end
+
+      # Checks if this rule has any alternatives that can derive lambda,
+      # using a custom block for checking if an element can derive lambda.
+      def derives_lambda?(&block)
+        return @alternatives.any? &.derives_lambda? { |it| yield it }
+      end
+
       # Creates a new rule with the same options, but with alternatives expanded for optional values.
       def compute_optional_variants
         return Rule.new(@alternatives.flat_map &.compute_optional_variants, @options)
+      end
+
+      # Creates a new rule with the same options, but with alternatives expanded for optional values.
+      # Uses a custom block to check if the elements can be empty or not.
+      def compute_optional_variants(&block)
+        return Rule.new(@alternatives.flat_map &.compute_optional_variants(block), @options)
       end
     end
 

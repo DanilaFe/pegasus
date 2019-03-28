@@ -5,7 +5,7 @@ token keyword_rule = /rule/;
 token equals_delimiter = /=/;
 token semicolon_delimiter = /;/;
 token or_delimiter = /\|/;
-token regex = /\/([^\/]|\\\/)*\//;
+token regex = /\/([^\/]|\\.)*\//;
 token open_square = /\[/;
 token closed_square = /\]/;
 token open_parenth = /\(/;

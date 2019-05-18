@@ -1,0 +1,2 @@
+token hello = /hello/;
+rule S = hello?;

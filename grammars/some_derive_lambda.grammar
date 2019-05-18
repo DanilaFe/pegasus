@@ -1,0 +1,5 @@
+token hello = /hello/;
+token goodbye = /goodbye/;
+rule S = A B hello;
+rule A = hello?;
+rule B = goodbye?;

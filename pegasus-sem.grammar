@@ -1,0 +1,29 @@
+token whitespace = /[ \t\n]+/ [ skip ];
+token identifier = /[a-zA-Z_\-]+/;
+token integer = /[0-9]+/;
+token code = /$$([^$]|$[^$])*$$/;
+token keyword_type = /type/;
+token keyword_typerules = /typerules/;
+token keyword_state = /state/;
+token keyword_init = /init/;
+token keyword_rule = /rule/;
+token eq = /=/;
+token oparenth = /\(/;
+token cparenth = /\)/;
+token obracket = /\[/;
+token cbracket = /\]/;
+token comma = /,/;
+
+rule S = type_list typerules_list init_decl rule_list;
+
+rule type_list = type_decl type_list?;
+rule type_decl = keyword_type identifier eq code;
+
+rule typerules_list = typerules_decl typerules_list?;
+rule typerules_decl = keyword_typerules identifier eq obracket identifier_list cbracket;
+rule identifier_list = identifier | identifier comma identifier_list;
+
+rule init_decl = keyword_init eq code;
+
+rule rule_list = rule_decl rule_list?;
+rule rule_decl = keyword_rule identifier eq code;

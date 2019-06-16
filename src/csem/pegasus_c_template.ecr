@@ -1,0 +1,269 @@
+#include <stdlib.h>
+#include <string.h>
+
+/* == User Code == */
+<%= @semantics.init %>
+
+/* == Nonterminals to String == */
+const char* pgs_nonterminal_name(long int nt) {
+    switch(nt) {
+        <%- @language.nonterminals.each do |name, value| -%>
+        case PGS_NONTERMINAL_<%= name.underscore.upcase %>: return <%= name.dump %>;
+        <%- end -%>
+        default: return "";
+    }
+}
+
+/* == Generated Tables and Variables== */
+
+#define PGS_MAX_TERMINAL <%= @language.max_terminal %>
+int lexer_skip_table[<%= @language.lex_skip_table.size %>] = {
+    <% @language.lex_skip_table.each do |skip| %><%= skip ? 1 : 0 %>, <% end %>
+};
+long int lexer_state_table[<%= @language.lex_state_table.size %>][<%= @language.lex_state_table[0].size %>] = {
+<% @language.lex_state_table.each do |state| -%>
+    { <% state.each do |transition| %><%= transition %>, <% end %> },
+<% end -%>
+};
+long int lexer_final_table[<%= @language.lex_final_table.size %>] = {
+    <% @language.lex_final_table.each do |final| %><%= final %>,<% end %>
+};
+long int parse_state_table[<%= @language.parse_state_table.size %>][<%= @language.parse_state_table[0].size %>]= {
+<% @language.parse_state_table.each do |state| -%>
+    { <% state.each do |transition| %><%= transition %>, <% end %> },
+<% end -%>
+};
+long int parse_action_table[<%= @language.parse_action_table.size %>][<%= @language.parse_action_table[0].size %>] = {
+<% @language.parse_action_table.each do |state| -%>
+    { <% state.each do |action| %><%= action %>, <% end %> },
+<% end -%>
+};
+pgs_item items[<%= @language.items.size %>] = {
+<% @language.items.each do |item| -%>
+    { <%= item.head.raw_id %>, <%= item.body.size %> },
+<% end -%>
+};
+
+/* == General Code == */
+void pgs_state_init(pgs_state* s) {
+    s->error = PGS_NONE;
+    s->errbuff[0] = '\0';
+}
+
+void pgs_state_error(pgs_state* s, pgs_error e, const char* message) {
+    s->error = e;
+    strncpy(s->errbuff, message, PGS_MAX_ERROR_LENGTH);
+}
+
+/* == Lexing Code == */
+
+pgs_error pgs_token_list_init(pgs_token_list* l) {
+    l->capacity = 8;
+    l->token_count = 0;
+    l->tokens = malloc(sizeof(*(l->tokens)) * l->capacity);
+
+    if(l->tokens == NULL) return PGS_MALLOC;
+    return PGS_NONE;
+}
+
+pgs_error pgs_token_list_append(pgs_token_list* l, long int terminal, size_t from, size_t to) {
+    if(l->capacity == l->token_count) {
+        pgs_token* new_tokens = realloc(l->tokens, sizeof(*new_tokens) * l->capacity * 2);
+        if(new_tokens == NULL) return PGS_MALLOC;
+        l->capacity *= 2;
+        l->tokens = new_tokens;
+    }
+
+    l->tokens[l->token_count].terminal = terminal;
+    l->tokens[l->token_count].from = from;
+    l->tokens[l->token_count].to = to + 1;
+    l->token_count++;
+
+    return PGS_NONE;
+}
+
+pgs_token* pgs_token_list_at(pgs_token_list* l, size_t i) {
+    return (i < l->token_count) ? &l->tokens[i] : NULL;
+}
+
+pgs_error pgs_token_list_at_id(pgs_token_list* l, size_t i) {
+    if(i < l->token_count) return l->tokens[i].terminal;
+    return 0;
+}
+
+void pgs_token_list_free(pgs_token_list* l) {
+    free(l->tokens);
+}
+
+pgs_error pgs_do_lex(pgs_state* s, pgs_token_list* list, const char* source) {
+    pgs_error error;
+    size_t index = 0;
+    long int final;
+    long int last_final;
+    long int last_final_index;
+    long int last_start;
+    long int state;
+    size_t length = strlen(source);
+
+    if((error = pgs_token_list_init(list))) return error;
+    while(!error && index < length) {
+        last_final = -1;
+        last_final_index = -1;
+        last_start = index;
+        state = 1;
+
+        while(index < length && state) {
+            state = lexer_state_table[state][(unsigned int) source[index]];
+
+            if((final = lexer_final_table[state])) {
+                last_final = final;
+                last_final_index = index;
+            }
+
+            if(state) index++;
+        }
+
+        if(last_final == -1) break;
+        if(lexer_skip_table[last_final]) continue;
+        error = pgs_token_list_append(list, last_final, last_start, last_final_index);
+    }
+
+    if(error == PGS_MALLOC) {
+        pgs_token_list_free(list);
+    } else if (index != length) {
+        pgs_state_error(s, PGS_BAD_CHARACTER, "Invalid character at position");
+        pgs_token_list_free(list);
+        return PGS_BAD_CHARACTER;
+    }
+
+    return PGS_NONE;
+}
+
+/* == Parsing Code == */
+
+pgs_error pgs_parse_stack_init(pgs_parse_stack* s) {
+    s->capacity = 8;
+    s->size = 1;
+    s->data = malloc(sizeof(*(s->data)) * s->capacity);
+
+    if(s->data == NULL) return PGS_MALLOC;
+    s->data[0].state = 1;
+
+    return PGS_NONE;
+}
+
+pgs_error pgs_parse_stack_append(pgs_parse_stack* s, pgs_stack_value* v, long int state) {
+    if(s->capacity == s->size) {
+        pgs_parse_stack_element* new_elements = realloc(s->data, sizeof(*new_elements) * s->capacity * 2);
+        if(new_elements == NULL) return PGS_MALLOC;
+        s->capacity *= 2;
+        s->data = new_elements;
+    }
+
+    s->data[s->size].value = *v;
+    s->data[s->size].state = state;
+    s->size++;
+
+    return PGS_NONE;
+}
+
+void pgs_parse_stack_free(pgs_parse_stack* s) {
+    size_t i;
+    for(i = 0; i < s->size; i++) {
+        /* Maybe eventually free individual union values */
+    }
+    free(s->data);
+}
+
+long int pgs_parse_stack_top_state(pgs_parse_stack* s) {
+    return s->data[s->size - 1].state;
+}
+
+pgs_stack_value* pgs_parse_stack_top_value(pgs_parse_stack* s) {
+    return &s->data[s->size - 1].value;
+}
+
+#define PGS_PARSE_ERROR(label_name, error_name, code, text) \
+    error_name = code; \
+    pgs_state_error(s, error_name, text); \
+    goto label_name;
+
+pgs_error pgs_do_parse(pgs_state* s, pgs_token_list* list, pgs_stack_value* into) {
+    pgs_error error;
+    pgs_parse_stack stack;
+    long int top_state;
+    long int current_token_id;
+    long int action;
+    long int nonterminal;
+    size_t index = 0;
+    pgs_stack_value temp;
+    
+    if((error = pgs_parse_stack_init(&stack))) return error;
+    while(1) {
+        current_token_id = pgs_token_list_at_id(list, index);
+        top_state = pgs_parse_stack_top_state(&stack);
+        action = parse_action_table[top_state][current_token_id];
+
+        if(action == -1) {
+            PGS_PARSE_ERROR(error_label, error, PGS_BAD_TOKEN, "Unexpected token at position");
+        } else if(action == 0) {
+            temp.token = pgs_token_list_at(list, index);
+            if(index >= (list->token_count)) {
+                PGS_PARSE_ERROR(error_label, error, PGS_EOF_SHIFT, "Unexpected end of file");
+            }
+
+            error = pgs_parse_stack_append(&stack, &temp, parse_state_table[top_state][temp.token->terminal]);
+            if(error) goto error_label;
+            index++;
+        } else {
+            switch(action - 1) {
+                <%- @semantics.actions.each do |k, v| -%>
+                case <%= k %>: <%= format_item(k, v) %>
+                <%- end -%>
+                default: break;
+            }
+            nonterminal = items[action - 1].left_id;
+            stack.size -= items[action - 1].right_count;
+            top_state = pgs_parse_stack_top_state(&stack);
+            error = pgs_parse_stack_append(&stack, &temp, parse_state_table[top_state][nonterminal + 2 + PGS_MAX_TERMINAL]);
+            switch(action - 1) {
+                <%- @language.items.each_with_index do |item, i| -%><%- next unless item.head.start? -%>
+                case <%= i %>: goto after_loop;
+                <%- end -%>
+                default: break;
+            }
+        }
+    }
+    after_loop:
+
+    if(index != list->token_count) {
+        PGS_PARSE_ERROR(error_label, error, PGS_BAD_TOKEN, "Unexpected token at position");
+    }
+
+    *into = stack.data[stack.size - 1].value;
+    stack.size -= 1;
+
+    error_label:
+    pgs_parse_stack_free(&stack);
+    return error;
+}
+
+/* == Glue Code == */
+pgs_error pgs_do_all(pgs_state* state, pgs_stack_value* into, const char* string) {
+    pgs_error error;
+    pgs_token_list tokens;
+    pgs_state_init(state);
+    if((error = pgs_do_lex(state, &tokens, string))) {
+        if(error == PGS_MALLOC) {
+            pgs_state_error(state, error, "Failure to allocate memory while lexing");
+        }
+        return error;
+    }
+    if((error = pgs_do_parse(state, &tokens, into))) {
+        if(error == PGS_MALLOC) {
+            pgs_state_error(state, error, "Failure to allocate memory while lexing");
+        }
+    }
+    pgs_token_list_free(&tokens);
+    return error;
+}

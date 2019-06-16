@@ -99,4 +99,5 @@ begin
     printer.to_file(file_prefix + file_name + ".c")
   end
 rescue e : Pegasus::Error::PegasusException
+  e.print(STDOUT)
 end

@@ -188,7 +188,7 @@ pgs_stack_value* pgs_parse_stack_top_value(pgs_parse_stack* s) {
     pgs_state_error(s, error_name, text); \
     goto label_name;
 
-pgs_error pgs_do_parse(pgs_state* s, pgs_token_list* list, pgs_stack_value* into) {
+pgs_error pgs_do_parse(pgs_state* s, pgs_token_list* list, pgs_stack_value* into, const char* src) {
     pgs_error error;
     pgs_parse_stack stack;
     long int top_state;
@@ -259,7 +259,7 @@ pgs_error pgs_do_all(pgs_state* state, pgs_stack_value* into, const char* string
         }
         return error;
     }
-    if((error = pgs_do_parse(state, &tokens, into))) {
+    if((error = pgs_do_parse(state, &tokens, into, string))) {
         if(error == PGS_MALLOC) {
             pgs_state_error(state, error, "Failure to allocate memory while lexing");
         }

@@ -226,9 +226,10 @@ void pgs_parse_stack_free(pgs_parse_stack* s);
  * @param s the state used for storing errors.
  * @param list the list of tokens, already filled.
  * @param into the value pointer pointer into which a new value will be stored.
+ * @param src the original string, for the user-defined actions.
  * @return the error, if any, that occured.
  */
-pgs_error pgs_do_parse(pgs_state* s, pgs_token_list* list, pgs_stack_value* into);
+pgs_error pgs_do_parse(pgs_state* s, pgs_token_list* list, pgs_stack_value* into, const char* src);
 
 /* == Glue == */
 /**

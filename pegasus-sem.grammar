@@ -26,4 +26,4 @@ rule identifier_list = identifier | identifier comma identifier_list;
 rule init_decl = keyword_init eq code;
 
 rule rule_list = rule_decl rule_list?;
-rule rule_decl = keyword_rule identifier eq code;
+rule rule_decl = keyword_rule identifier oparenth integer cparenth eq code;

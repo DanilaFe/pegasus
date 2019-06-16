@@ -6,13 +6,27 @@ module Pegasus
     alias TerminalTree = Generated::Semantics::TerminalTree
 
     class SemanticsData
+      getter types : Hash(String, String)
+      getter nonterminal_types : Hash(Elements::NonterminalId, String)
+      getter actions : Hash(Int64, String)
+      getter init : String
+
       def initialize(source, @data : Language::LanguageData)
         @types = {} of String => String
         @nonterminal_types = {} of Elements::NonterminalId => String
-        @actions = {} of { Elements::NonterminalId, Int64 } => String
+        @actions = {} of Int64 => String
         @init = ""
 
-        raw_tree = Pegasus::Generated::Semantics.process(source).as(NonterminalTree)
+        @types["token"] = "pgs_token*"
+
+        begin
+          raw_tree = Pegasus::Generated::Semantics.process(source).as(NonterminalTree)
+        rescue e : Pegasus::Error::PegasusException
+          raise e
+        rescue e : Exception
+          raise_general e.message.not_nil!
+        end
+
         register_types raw_tree.children[0]
         register_typerules raw_tree.children[1]
         register_init raw_tree.children[2]
@@ -24,7 +38,7 @@ module Pegasus
         loop do
           type_decl = type_list.children[0].as(NonterminalTree)
           identifier = type_decl.children[1].as(TerminalTree).string;
-          code = type_decl.children[3].as(TerminalTree).string[2..-2];
+          code = type_decl.children[3].as(TerminalTree).string[2..-3];
           raise_general "Redefining #{identifier}" if @types.includes? identifier
           @types[identifier] = code
 
@@ -66,11 +80,11 @@ module Pegasus
           break if list.children.size == 1
           list = list.children[2].as(NonterminalTree)
         end
-        return [] of String
+        return identifiers
       end
 
       def register_init(tree)
-        @init = tree.as(NonterminalTree).children[2].as(TerminalTree).string[2..-2];
+        @init = tree.as(NonterminalTree).children[2].as(TerminalTree).string[2..-3];
       end
 
       def register_rules(tree)
@@ -79,16 +93,25 @@ module Pegasus
           rule = rules_list.children[0].as(NonterminalTree)
           identifier = rule.children[1].as(TerminalTree).string
           number = rule.children[3].as(TerminalTree).string.to_i64
-          code = rule.children[6].as(TerminalTree).string[2..-2];
+          code = rule.children[6].as(TerminalTree).string[2..-3];
           
           unless nonterminal = @data.nonterminals[identifier]?
             raise_general "unknown rule #{nonterminal}"
           end
 
-          count = @data.items.count &.head.==(nonterminal)
-          raise_general "no rule #{identifier}(#{number})" if number >= count
-          raise_general "redefinition of rule #{identifier}(#{number})" if @actions.includes?({ nonterminal, number })
-          @actions[{nonterminal, number}] = code
+          index = 0
+          set = false
+          @data.items.each_with_index do |item, i|
+            next unless item.head == nonterminal
+            if index == number
+              raise_general "redefinition of rule #{identifier}(#{number})" if @actions.includes? i.to_i64
+              @actions[i.to_i64] = code
+              set = true
+              break
+            end
+            index += 1
+          end
+          raise_general "no rule #{identifier}(#{number})" unless set
 
           break if rules_list.children.size == 1
           rules_list = rules_list.children[1].as(NonterminalTree)

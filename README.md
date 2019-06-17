@@ -13,7 +13,9 @@ _Warning: Pegasus is experimental. Its APIs are not yet solidified, and are subj
   * [Regular Expressions](#regular-expressions)
   * [Included Programs](#included-programs)
   * [Options](#options)
+  * [Semantic Actions](#semantic-actions)
 * [C Output](#c-output)
+* [C Output With Semantic Actions](#c-output-with-semantic-actions)
 * [Crystal Output](#crystal-output)
 
 ## Architecture
@@ -101,6 +103,18 @@ rule list = list_start list_recursive list_end;
 rule list_recursive = digit | digit comma list_recursive;
 ```
 Now, this will be able to parse equivalently the strings "[3]", "[ 3 ]" and [ 3]", because the whitespace token is ignored.
+### Semantic Actions
+It's certainly convenient to create a parse tree that perfectly mimics the structure of a language's grammar. However, this isn't always desirable - if the user desires to construct an Abstract Syntax Tree, they're left having to walk the structure of the resulting tree _again_, frequently checking what rule created a particular nonterminal, or how many children a root node has. This is less than ideal - we don't want to duplicate the work of specifying the grammar when we walk the trees. Furthermore, if the grammar changes, the code that walks the parse trees will certainly need to change.
+
+To remedy this, I've been toying with the idea of including _semantic actions_ into Pegasus, in a very similar way to Yacc / Bison. Semantic actions are pieces of code that run when a particular rule in the grammar is matched. However, this would mean that the user has to write these actions in some particular language (Yacc / Bison use C/C++). Since Pegasus aims to be language agnostic, writing code in a particular language in the main grammar file is undesirable. Thus, I chose the approach of separating semantic actions into a separate file format. The format uses `$$` to delimit code blocks, and contains the following sections:
+
+* Types that various nonterminals are assigned. For instance, a boolean expression can be assigned the C++ type "bool".
+* The actual rules that are of each of the types declared above.
+* The init code (placed in a global context before the parsing function)
+* The semantic actions for each rule.
+
+For a concrete example of this file format, see the example code in the [C Output With Semantic Actions](#c-output-with-semantic-actions) section.
+
 ### Included programs
 Before you use any of these programs, you should use
 ```
@@ -160,6 +174,12 @@ To learn how to use the generated code, lease take a look at the
 [Crystal output](#crystal-output) section.
 ```Bash
 ./bin/pegasus-crystal < test.json
+```
+
+#### `pegasus-csem`
+Another C parser generator. The difference between this parser generator and `pegasus-c` is that it uses a separate semantic actions file to mimic the functionality of Yacc/Bison. This means you can specify C code that runs when each rule in the grammar is matched. To learn how to use this parser generator, see the [C Output With Semantic Actions](#c-output-with-semantic-actions) section.
+```
+./bin/pegasus-csem -a test.json -b test.sem
 ```
 
 ## C Output
@@ -235,6 +255,71 @@ Nonterminal: S
       Terminal: 3
 ```
 Some more useful C macros for accessing the trees can be found in `parser.h`
+
+## C Output With Semantic Actions
+Say you don't need a parse tree. Instead, you want to construct your own values from Pegasus grammar rules. In this case, you want to use the `pegasus-csem` parser generator. It is best demonstrated using a small example. Let's consider a language of booleans:
+```
+token whitespace = /[ \n\t]+/ [ skip ];
+token true = /true/;
+token false = /false/;
+token and = /and/;
+token or = /or/;
+
+rule S = expr;
+rule expr = tkn | expr and tkn | expr or tkn;
+rule tkn = true | false;
+```
+Easy enough. But why would we want a parse tree from this? Let's operate directly on booleans (which we'll represent as integers in C). We create the semantic actions file step by step. First, we know all our actions  will produce integers (which represent booleans). So we create a boolean type:
+```
+type boolean = $$ int $$
+```
+Now, we want to assign this type to the nonterminals in our language. We do this as follows:
+```
+typerules boolean = [ S, expr, tkn ]
+```
+We don't need any global variables or functions, so we can just leave the `init` block blank:
+```
+init = $$ $$
+```
+Next, we write actions that correspond to each gramamr rule.
+```
+rule S(0) = $$ $out = $0; $$
+```
+`$out` is the "output" variable, and `$0` is the value generated for the first terminal or nonterminal in the rule (in this case, `expr`). This rule just forwards the result of the rules for `expr`. Next, let's write rules for `expr`:
+```
+rule expr(0) = $$ $out = $0; $$
+rule expr(1) = $$ $out = $0 & $2; $$
+rule expr(2) = $$ $out = $0 | $2; $$
+```
+The first rule simply forwards the value generated for `tkn`. The other two rules combine the results of their subexpressions using `&` and `|` (we use `&` in the grammar rule that has the `and` token, and `|` in the grammar rule that has the `or` token). Finally, we write the rules for `tkn`:
+```
+rule tkn(0) = $$ $out = 1; $$
+rule tkn(1) = $$ $out = 0; $$
+```
+Time to test this. We need to write a simple program that uses the parser. The main difference from the C output without semantic actions is that we use `pgs_stack_value` union type, with fields named after the types we registered (`boolean`, in this case). The code:
+```
+#include "parser.h"
+
+int main() {
+    pgs_stack_value v; /* Temporary variable into which to store the result */
+    pgs_state s; /* The state used for reporting error message */
+
+    /* Initialize the state */
+    pgs_state_init(&s);
+    /* Tokenize and parse a hardcoded string, ignoring error code */
+    pgs_do_all(&s, &v, "false or false or true");
+    /* Print the error generated, if any */
+    printf("%s\n", s.errbuff);
+    /* Print the boolean value as an integer. */
+    printf("%d\n", v.boolean);
+}
+```
+The output is the result of evaluating our expression: "true", or 1:
+```
+
+1
+```
+
 ## Crystal Output
 Just like with C, this repository contains a program to output Crystal when code given a JSON file.
 Because Crystal supports exceptions and garbage collection, there is no need to initialize

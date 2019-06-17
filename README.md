@@ -297,7 +297,7 @@ rule tkn(0) = $$ $out = 1; $$
 rule tkn(1) = $$ $out = 0; $$
 ```
 Time to test this. We need to write a simple program that uses the parser. The main difference from the C output without semantic actions is that we use `pgs_stack_value` union type, with fields named after the types we registered (`boolean`, in this case). The code:
-```
+```C
 #include "parser.h"
 
 int main() {

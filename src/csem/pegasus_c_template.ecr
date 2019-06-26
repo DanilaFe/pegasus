@@ -60,7 +60,7 @@ void pgs_state_error(pgs_state* s, pgs_error e, const char* message) {
 pgs_error pgs_token_list_init(pgs_token_list* l) {
     l->capacity = 8;
     l->token_count = 0;
-    l->tokens = malloc(sizeof(*(l->tokens)) * l->capacity);
+    l->tokens = (pgs_token*) malloc(sizeof(*(l->tokens)) * l->capacity);
 
     if(l->tokens == NULL) return PGS_MALLOC;
     return PGS_NONE;
@@ -68,7 +68,8 @@ pgs_error pgs_token_list_init(pgs_token_list* l) {
 
 pgs_error pgs_token_list_append(pgs_token_list* l, long int terminal, size_t from, size_t to) {
     if(l->capacity == l->token_count) {
-        pgs_token* new_tokens = realloc(l->tokens, sizeof(*new_tokens) * l->capacity * 2);
+        pgs_token* new_tokens =
+            (pgs_token*) realloc(l->tokens, sizeof(*new_tokens) * l->capacity * 2);
         if(new_tokens == NULL) return PGS_MALLOC;
         l->capacity *= 2;
         l->tokens = new_tokens;
@@ -144,7 +145,7 @@ pgs_error pgs_do_lex(pgs_state* s, pgs_token_list* list, const char* source) {
 pgs_error pgs_parse_stack_init(pgs_parse_stack* s) {
     s->capacity = 8;
     s->size = 1;
-    s->data = malloc(sizeof(*(s->data)) * s->capacity);
+    s->data = (pgs_parse_stack_element*) malloc(sizeof(*(s->data)) * s->capacity);
 
     if(s->data == NULL) return PGS_MALLOC;
     s->data[0].state = 1;
@@ -154,7 +155,9 @@ pgs_error pgs_parse_stack_init(pgs_parse_stack* s) {
 
 pgs_error pgs_parse_stack_append(pgs_parse_stack* s, pgs_stack_value* v, long int state) {
     if(s->capacity == s->size) {
-        pgs_parse_stack_element* new_elements = realloc(s->data, sizeof(*new_elements) * s->capacity * 2);
+        pgs_parse_stack_element* new_elements =
+            (pgs_parse_stack_element*) realloc(
+                s->data, sizeof(*new_elements) * s->capacity * 2);
         if(new_elements == NULL) return PGS_MALLOC;
         s->capacity *= 2;
         s->data = new_elements;

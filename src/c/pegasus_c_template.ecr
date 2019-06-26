@@ -85,7 +85,7 @@ pgs_token* pgs_token_list_at(pgs_token_list* l, size_t i) {
     return (i < l->token_count) ? &l->tokens[i] : NULL;
 }
 
-pgs_error pgs_token_list_at_id(pgs_token_list* l, size_t i) {
+long int pgs_token_list_at_id(pgs_token_list* l, size_t i) {
     if(i < l->token_count) return l->tokens[i].terminal;
     return 0;
 }

@@ -131,7 +131,7 @@ pgs_token* pgs_token_list_at(pgs_token_list* l, size_t i);
  * @param i the index from which to return an ID.
  * @return returns an ID, or 0, which represents EOF.
  */
-pgs_error pgs_token_list_at_id(pgs_token_list* l, size_t i );
+long int pgs_token_list_at_id(pgs_token_list* l, size_t i );
 /**
  * Frees a list of tokens. Since the tokens are owned by the list,
  * they are invalidated after this call too.

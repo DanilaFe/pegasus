@@ -32,7 +32,7 @@ module Pegasus
 
     # The EOF element. Represents the end of the file, and is not matched as a token by the lexer.
     class EofElement < IndexableElement
-      def table_index
+      def table_index : Int64
         return 0_i64
       end
 
@@ -55,7 +55,7 @@ module Pegasus
       def initialize(@id : Int64)
       end
 
-      def table_index
+      def table_index : Int64
         return @id + 1
       end
 

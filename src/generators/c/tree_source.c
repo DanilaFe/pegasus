@@ -167,7 +167,7 @@ pgs_error pgs_do_parse(pgs_state* s, pgs_token_list* list, pgs_tree** into) {
 
         if(top_tree &&
                 top_tree->variant == PGS_TREE_NONTERMINAL &&
-                parse_final_table[top_tree->tree_data.nonterminal.nonterminal])
+                parse_final_table[top_tree->tree_data.nonterminal.nonterminal + 1])
             break;
 
         action = parse_action_table[top_state][current_token_id];

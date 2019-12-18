@@ -1,6 +1,7 @@
 require "../../pegasus/language_def.cr"
 require "../../pegasus/json.cr"
 require "../../pegasus/semantics.cr"
+require "../c-common/tables.cr"
 
 require "option_parser"
 require "ecr"

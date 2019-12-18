@@ -1,43 +1,4 @@
-
-/* == Nonterminals to String == */
-const char* pgs_nonterminal_name(long int nt) {
-    switch(nt) {
-        <%- @nonterminals.each do |name, value| -%>
-        case PGS_NONTERMINAL_<%= name.underscore.upcase %>: return <%= name.dump %>;
-        <%- end -%>
-        default: return "";
-    }
-}
-
-/* == Generated Tables and Variables== */
-
-#define PGS_MAX_TERMINAL <%= @max_terminal %>
-int lexer_skip_table[<%= @lex_skip_table.size %>] = {
-    <% @lex_skip_table.each do |skip| %><%= skip ? 1 : 0 %>, <% end %>
-};
-long int lexer_state_table[<%= @lex_state_table.size %>][<%= @lex_state_table[0].size %>] = {
-<% @lex_state_table.each do |state| -%>
-    { <% state.each do |transition| %><%= transition %>, <% end %> },
-<% end -%>
-};
-long int lexer_final_table[<%= @lex_final_table.size %>] = {
-    <% @lex_final_table.each do |final| %><%= final %>,<% end %>
-};
-long int parse_state_table[<%= @parse_state_table.size %>][<%= @parse_state_table[0].size %>]= {
-<% @parse_state_table.each do |state| -%>
-    { <% state.each do |transition| %><%= transition %>, <% end %> },
-<% end -%>
-};
-long int parse_action_table[<%= @parse_action_table.size %>][<%= @parse_action_table[0].size %>] = {
-<% @parse_action_table.each do |state| -%>
-    { <% state.each do |action| %><%= action %>, <% end %> },
-<% end -%>
-};
-pgs_item items[<%= @items.size %>] = {
-<% @items.each do |item| -%>
-    { <%= item.head.raw_id %>, <%= item.body.size %> },
-<% end -%>
-};
+<%= Pegasus::Generators::CTableGen.new(self).to_s %>
 
 <%= {{ read_file "src/generators/c-common/standard_source.c" }} %>
 

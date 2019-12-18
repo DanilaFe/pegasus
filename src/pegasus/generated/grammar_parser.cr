@@ -109,6 +109,21 @@ module Pegasus::Generated
     [  0_i64,  0_i64,  31_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  35_i64,  30_i64,  ],
     [  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  0_i64,  ],
   ]
+  PARSE_FINAL_TABLE = [
+    false,
+    true,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+  ]
   ITEMS =  [
     { 0_i64, 2_i64 },
     { 0_i64, 1_i64 },
@@ -132,7 +147,10 @@ module Pegasus::Generated
     { 10_i64, 3_i64 },
     { 11_i64, 1_i64 },
   ]
+end
 
+
+module Pegasus::Generated
   extend self
 
   abstract class Tree

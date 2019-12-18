@@ -1,0 +1,9 @@
+type integer = $$ int $$
+
+typerules integer = [S, add_expr]
+
+init = $$ $$
+
+rule S(0) = $$ $out = $0; $$
+rule add_expr(0) = $$ $out = $0 + atoi(src + $2->from); $$
+rule add_expr(1) = $$ $out = atoi(src + $0->from); $$

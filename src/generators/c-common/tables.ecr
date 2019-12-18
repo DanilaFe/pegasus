@@ -33,6 +33,11 @@ long int parse_action_table[<%= @language.parse_action_table.size %>][<%= @langu
     { <% state.each do |action| %><%= action %>, <% end %> },
 <% end -%>
 };
+int parse_final_table[<%= @language.parse_final_table.size %>] = {
+<% @language.parse_final_table.each do |skip| -%>
+  <%= skip ? 1 : 0 %>,
+<% end -%>
+};
 pgs_item items[<%= @language.items.size %>] = {
 <% @language.items.each do |item| -%>
     { <%= item.head.raw_id %>, <%= item.body.size %> },

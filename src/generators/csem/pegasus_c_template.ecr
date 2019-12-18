@@ -46,12 +46,7 @@ pgs_error pgs_do_parse(pgs_state* s, pgs_token_list* list, pgs_stack_value* into
             stack.size -= items[action - 1].right_count;
             top_state = pgs_parse_stack_top_state(&stack);
             error = pgs_parse_stack_append(&stack, &temp, parse_state_table[top_state][nonterminal + 2 + PGS_MAX_TERMINAL]);
-            switch(action - 1) {
-                <%- @language.items.each_with_index do |item, i| -%><%- next unless item.head.start? -%>
-                case <%= i %>: goto after_loop;
-                <%- end -%>
-                default: continue;
-            }
+            if(parse_final_table[nonterminal]) goto after_loop;
         }
     }
     after_loop:

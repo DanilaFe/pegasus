@@ -164,10 +164,12 @@ pgs_error pgs_do_parse(pgs_state* s, pgs_token_list* list, pgs_tree** into) {
         current_token_id = pgs_token_list_at_id(list, index);
         top_tree = pgs_parse_stack_top_tree(&stack);
         top_state = pgs_parse_stack_top_state(&stack);
-        if(top_tree) {
-            tree_table_index = pgs_tree_table_index(top_tree);
-            if(tree_table_index == PGS_MAX_TERMINAL + 2) break;
-        }
+
+        if(top_tree &&
+                top_tree->variant == PGS_TREE_NONTERMINAL &&
+                parse_final_table[top_tree->tree_data.nonterminal.nonterminal])
+            break;
+
         action = parse_action_table[top_state][current_token_id];
 
         if(action == -1) {

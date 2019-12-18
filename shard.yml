@@ -8,16 +8,16 @@ targets:
   pegasus:
     main: src/pegasus.cr
   pegasus-dot:
-    main: src/dot/pegasus_dot.cr
+    main: src/tools/dot/pegasus_dot.cr
   pegasus-sim:
-    main: src/sim/pegasus_sim.cr
+    main: src/tools/sim/pegasus_sim.cr
   pegasus-c:
-    main: src/c/pegasus_c.cr
+    main: src/generators/c/pegasus_c.cr
   pegasus-csem:
-    main: src/csem/pegasus_csem.cr
+    main: src/generators/csem/pegasus_csem.cr
   pegasus-crystal:
-    main: src/crystal/pegasus_crystal.cr
+    main: src/generators/crystal/pegasus_crystal.cr
 
-crystal: 0.26.1
+crystal: 0.32.0
 
 license: MIT

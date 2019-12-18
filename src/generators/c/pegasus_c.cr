@@ -1,5 +1,5 @@
-require "../pegasus/language_def.cr"
-require "../pegasus/json.cr"
+require "../../pegasus/language_def.cr"
+require "../../pegasus/json.cr"
 require "option_parser"
 require "ecr"
 
@@ -7,13 +7,13 @@ module Pegasus
   module Language
     class LanguageData
       def output(io)
-        ECR.embed "src/c/pegasus_c_template.ecr", io
+        ECR.embed "src/generators/c/pegasus_c_template.ecr", io
       end
 
       def to_io(io)
-        ECR.embed "src/c/pegasus_c_header_template.ecr", io
+        ECR.embed "src/generators/c/pegasus_c_header_template.ecr", io
         io << "\n"
-        ECR.embed "src/c/pegasus_c_template.ecr", io
+        ECR.embed "src/generators/c/pegasus_c_template.ecr", io
       end
 
       def to_file(name)
@@ -26,11 +26,11 @@ module Pegasus
         header_file_io = File.open header_file, mode: "w"
         impl_file_io = File.open impl_file, mode: "w"
 
-        ECR.embed "src/c/pegasus_c_header_template.ecr", header_file_io
+        ECR.embed "src/generators/c/pegasus_c_header_template.ecr", header_file_io
 
         impl_file_io << "#include \"" << header_file << "\""
         impl_file_io.puts
-        ECR.embed "src/c/pegasus_c_template.ecr", impl_file_io
+        ECR.embed "src/generators/c/pegasus_c_template.ecr", impl_file_io
 
         header_file_io.close
         impl_file_io.close

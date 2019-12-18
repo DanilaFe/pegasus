@@ -127,7 +127,7 @@ module Pegasus
           lalr_pda = grammar.create_lalr_pda(lr_pda)
           parse_state_table = lalr_pda.state_table
           parse_action_table = lalr_pda.action_table
-          parse_final_table = [false] + nonterminals.map &.[1].final?
+          parse_final_table = [false] + nonterminals.map &.[1].start?
         rescue e : Pegasus::Error::PegasusException
           if old_context = e.context_data
             .find(&.is_a?(Pegasus::Dfa::ConflictErrorContext))

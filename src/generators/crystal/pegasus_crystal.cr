@@ -1,5 +1,5 @@
-require "../pegasus/language_def.cr"
-require "../pegasus/json.cr"
+require "../../pegasus/language_def.cr"
+require "../../pegasus/json.cr"
 require "option_parser"
 require "ecr"
 
@@ -7,7 +7,7 @@ module Pegasus
   module Language
     class LanguageData
       def output(io, prefix)
-        ECR.embed "src/crystal/pegasus_crystal_template.ecr", io
+        ECR.embed "src/generators/crystal/pegasus_crystal_template.ecr", io
       end
     end
   end

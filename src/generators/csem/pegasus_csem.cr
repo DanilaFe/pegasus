@@ -1,6 +1,6 @@
-require "../pegasus/language_def.cr"
-require "../pegasus/json.cr"
-require "../pegasus/semantics.cr"
+require "../../pegasus/language_def.cr"
+require "../../pegasus/json.cr"
+require "../../pegasus/semantics.cr"
 
 require "option_parser"
 require "ecr"
@@ -11,13 +11,13 @@ struct SemanticPrinter
   end
 
   def output(io)
-    ECR.embed "src/csem/pegasus_c_template.ecr", io
+    ECR.embed "src/generators/csem/pegasus_c_template.ecr", io
   end
 
   def to_io(io)
-    ECR.embed "src/csem/pegasus_c_header_template.ecr", io
+    ECR.embed "src/generators/csem/pegasus_c_header_template.ecr", io
     io << "\n"
-    ECR.embed "src/csem/pegasus_c_template.ecr", io
+    ECR.embed "src/generators/csem/pegasus_c_template.ecr", io
   end
 
   def to_file(name)
@@ -52,11 +52,11 @@ struct SemanticPrinter
     header_file_io = File.open header_file, mode: "w"
     impl_file_io = File.open impl_file, mode: "w"
 
-    ECR.embed "src/csem/pegasus_c_header_template.ecr", header_file_io
+    ECR.embed "src/generators/csem/pegasus_c_header_template.ecr", header_file_io
 
     impl_file_io << "#include \"" << header_file << "\""
     impl_file_io.puts
-    ECR.embed "src/csem/pegasus_c_template.ecr", impl_file_io
+    ECR.embed "src/generators/csem/pegasus_c_template.ecr", impl_file_io
 
     header_file_io.close
     impl_file_io.close
@@ -87,7 +87,7 @@ end
 
 begin
   grammar = Pegasus::Language::LanguageData.from_json File.read(grammar_name)
-  semantics = Pegasus::Semantics::SemanticsData.new File.read(semantics_name), grammar
+  semantics = Pegasus::Semantics::SemanticsData.new File.read(semantics_name), "pgs_token*", grammar
   printer = SemanticPrinter.new(grammar, semantics)
 
   if split

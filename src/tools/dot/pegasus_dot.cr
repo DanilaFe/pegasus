@@ -1,5 +1,5 @@
-require "../pegasus/language_def.cr"
-require "../pegasus/json.cr"
+require "../../pegasus/language_def.cr"
+require "../../pegasus/json.cr"
 require "option_parser"
 
 module Pegasus::Dot

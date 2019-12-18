@@ -1,0 +1,21 @@
+module <%= @prefix %>
+  MAX_TERMINAL = <%= @language.max_terminal %>
+  LEX_SKIP_TABLE = [ <% @language.lex_skip_table.each do |skip| %> <%= skip %>, <% end %> ]
+  LEX_FINAL_TABLE = [ <% @language.lex_final_table.each do |final| %> <%= final %>_i64, <% end %> ]
+  LEX_STATE_TABLE = [<% @language.lex_state_table.each do |state| %>
+    [ <% state.each do |transition| %> <%= transition %>_i64, <% end %> ],<%- end %>
+  ]
+  PARSE_ACTION_TABLE = [<% @language.parse_action_table.each do |state| %>
+    [ <% state.each do |transition| %> <%= transition %>_i64, <% end %> ],<%- end %>
+  ]
+  PARSE_STATE_TABLE = [<% @language.parse_state_table.each do |state| %>
+    [ <% state.each do |transition| %> <%= transition %>_i64, <% end %> ],<%- end %>
+  ]
+  PARSE_FINAL_TABLE = [<% @language.parse_final_table.each do |skip| %>
+    <%= skip %>,
+  <% end -%>
+  ]
+  ITEMS = <% if @language.items.size == 0 %> [] of Tuple(Int64, Int64) <% else %> [<% @language.items.each do |item| %>
+    { <%= item.head.raw_id %>_i64, <%= item.body.size %>_i64 },<%- end %>
+  ]<%- end %>
+end

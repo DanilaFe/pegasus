@@ -11,13 +11,13 @@ module Pegasus
       getter actions : Hash(Int64, String)
       getter init : String
 
-      def initialize(source, @data : Language::LanguageData)
+      def initialize(source, token_type : String, @data : Language::LanguageData)
         @types = {} of String => String
         @nonterminal_types = {} of Elements::NonterminalId => String
         @actions = {} of Int64 => String
         @init = ""
 
-        @types["token"] = "pgs_token*"
+        @types["token"] = token_type
 
         begin
           raw_tree = Pegasus::Generated::Semantics.process(source).as(NonterminalTree)
@@ -33,7 +33,7 @@ module Pegasus
         register_rules raw_tree.children[3]
       end
 
-      def register_types(tree)
+      private def register_types(tree)
         type_list = tree.as(NonterminalTree)
         loop do
           type_decl = type_list.children[0].as(NonterminalTree)
@@ -47,7 +47,7 @@ module Pegasus
         end
       end
 
-      def register_typerules(tree)
+      private def register_typerules(tree)
         typerules_list = tree.as(NonterminalTree)
         loop do
           typerule_decl = typerules_list.children[0].as(NonterminalTree)
@@ -71,7 +71,7 @@ module Pegasus
         end
       end
 
-      def read_identifier_list(tree)
+      private def read_identifier_list(tree)
         list = tree.as(NonterminalTree)
         identifiers = [] of String
         loop do
@@ -83,11 +83,11 @@ module Pegasus
         return identifiers
       end
 
-      def register_init(tree)
+      private def register_init(tree)
         @init = tree.as(NonterminalTree).children[2].as(TerminalTree).string[2..-3];
       end
 
-      def register_rules(tree)
+      private def register_rules(tree)
         rules_list = tree.as(NonterminalTree)
         loop do
           rule = rules_list.children[0].as(NonterminalTree)

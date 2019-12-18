@@ -1,69 +1,50 @@
 require "../../pegasus/language_def.cr"
 require "../../pegasus/json.cr"
 require "../c-common/tables.cr"
+require "../generators.cr"
 require "option_parser"
 require "ecr"
 
-module Pegasus
-  module Language
-    class LanguageData
-      def output(io)
-        ECR.embed "src/generators/c/pegasus_c_template.ecr", io
-      end
+module Pegasus::Generators::C
+  include Pegasus::Language
+  include Pegasus::Generators::Api
 
-      def to_io(io)
-        ECR.embed "src/generators/c/pegasus_c_header_template.ecr", io
-        io << "\n"
-        ECR.embed "src/generators/c/pegasus_c_template.ecr", io
-      end
+  class CContext
+    def add_option(opt_parser)
+    end
+  end
 
-      def to_file(name)
-        file = File.open name, mode: "w"
-        to_io file
-        file.close
-      end
+  class LanguageInput < StdInput(LanguageData)
+    def process(opt_parser)
+      LanguageData.from_json STDIN
+    end
+  end
 
-      def to_files(*, header_file, impl_file)
-        header_file_io = File.open header_file, mode: "w"
-        impl_file_io = File.open impl_file, mode: "w"
+  class HeaderGenerator < FileGenerator(CContext, LanguageData)
+    def initialize(parent)
+      super parent, "header", "parser.h", "the parser header file"
+    end
 
-        ECR.embed "src/generators/c/pegasus_c_header_template.ecr", header_file_io
+    def to_s(io)
+      ECR.embed "src/generators/c/pegasus_c_header_template.ecr", io 
+    end
+  end
 
-        impl_file_io << "#include \"" << header_file << "\""
-        impl_file_io.puts
-        ECR.embed "src/generators/c/pegasus_c_template.ecr", impl_file_io
+  class SourceGenerator < FileGenerator(CContext, LanguageData)
+    def initialize(parent)
+      super parent, "code", "parser.c", "the parser source code file"
+    end
 
-        header_file_io.close
-        impl_file_io.close
-      end
+    def to_s(io)
+      io << "#include \"#{@parent.output_file_names["header"]}\"\n"
+      ECR.embed "src/generators/c/pegasus_c_template.ecr", io 
     end
   end
 end
 
-file_prefix = ""
-file_name = "parser"
-header_name = nil
-impl_name = nil
-split = true
-stdout = false
+include Pegasus::Generators::C
 
-OptionParser.parse! do |parser|
-  parser.banner = "Usage: pegasus-c [arguments]"
-  parser.on("-s", "--single-file", "Combines the header and implementation files into one") { split = false }
-  parser.on("-S", "--standard-out", "Combines the header and implementation files, and prints to standard out") { split = false; stdout = true }
-  parser.on("-p PREFIX", "--prefix=PREFIX", "Sets prefix for generate files") { |prefix| file_prefix = prefix }
-  parser.on("-f FILE", "--file-name=", "Sets output file name") { |file| file_name = file }
-  parser.on("-H HEADER", "--header-name=HEADER", "Sets the header file name. Ignores prefix") { |header| header_name = header }
-  parser.on("-i IMPL", "--implementation-name=IMPL", "Sets the implementation file name. Ignores prefix") { |impl| impl_name = impl }
-  parser.on("-h", "--help", "Displays this message") { puts parser }
-end
-
-data = Pegasus::Language::LanguageData.from_json STDIN
-if split
-  data.to_files(header_file: (header_name || (file_prefix + file_name + ".h")).not_nil!,
-                impl_file: (impl_name || (file_prefix + file_name + ".c")).not_nil!)
-elsif stdout
-  data.to_io(STDOUT)
-else
-  data.to_file(file_prefix + file_name + ".c")
-end
+parser = PegasusOptionParser(CContext, LanguageData).new LanguageInput.new
+HeaderGenerator.new(parser)
+SourceGenerator.new(parser)
+parser.run

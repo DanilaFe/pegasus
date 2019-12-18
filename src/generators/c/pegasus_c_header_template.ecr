@@ -1,7 +1,7 @@
 <%= {{ read_file "src/generators/c-common/standard_header.h" }} %>
 
 /* == Nonterminal ID Definitions == */
-<% @nonterminals.each do |name, value| -%>
+<% input!.nonterminals.each do |name, value| -%>
 #define PGS_NONTERMINAL_<%= name.underscore.upcase %> <%= value.raw_id %>
 <% end -%>
 

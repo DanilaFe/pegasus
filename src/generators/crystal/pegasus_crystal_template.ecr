@@ -1,6 +1,6 @@
-<%= Pegasus::Generators::CrystalTableGen.new(prefix, self).to_s %>
+<%= Pegasus::Generators::CrystalTableGen.new(context.output_module, input!).to_s %>
 
-module <%= prefix %>
+module <%= context.output_module %>
   extend self
 
   abstract class Tree
@@ -19,7 +19,7 @@ module <%= prefix %>
     end
 
     def name
-      case nonterminal_id<% @nonterminals.each do |nt| %>
+      case nonterminal_id<% input!.nonterminals.each do |nt| %>
       when <%= nt[1].raw_id %>_i64
         <%= nt[0].dump -%>
       <%- end %>

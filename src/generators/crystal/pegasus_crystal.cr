@@ -1,38 +1,48 @@
 require "../../pegasus/language_def.cr"
 require "../../pegasus/json.cr"
 require "../crystal-common/tables.cr"
+require "../generators.cr"
 require "option_parser"
 require "ecr"
 
-module Pegasus
-  module Language
-    class LanguageData
-      def output(io, prefix)
-        ECR.embed "src/generators/crystal/pegasus_crystal_template.ecr", io
-      end
+module Pegasus::Generators::Crystal
+  include Pegasus::Language
+  include Pegasus::Generators::Api
+
+  class CrystalContext
+    property output_module : String
+
+    def initialize(@output_module : String = "Pegasus::Generated")
+    end
+
+    def add_option(opt_parser)
+      opt_parser.option_parser.on("-m",
+                                  "--module=MODULE",
+                                  "Sets the module in generated code") do |m|
+                                    @output_module = m
+                                  end
+    end
+  end
+
+  class LanguageInput < StdInput(Pegasus::Language::LanguageData)
+    def process(opt_parser)
+      Pegasus::Language::LanguageData.from_json STDIN
+    end
+  end
+
+  class ParserGenerator < FileGenerator(CrystalContext, LanguageData)
+    def initialize(parent)
+      super parent, "parser", "parser.cr", "the generated parser file"
+    end
+
+    def to_s(io)
+      ECR.embed "src/generators/crystal/pegasus_crystal_template.ecr", io 
     end
   end
 end
 
-prefix = "Pegasus::Generated"
-file_name = "parser"
-stdout = false
+include Pegasus::Generators::Crystal
 
-OptionParser.parse! do |parser|
-  parser.banner = "Usage: pegasus-crystal [arguments]"
-  parser.on("-S", "--standard-out", "Combines the header and implementation files, and prints to standard out") { stdout = true }
-  parser.on("-P PREFIX", "--prefix PREFIX", "Specify the prefix for generated code") do |p|
-    prefix = p
-  end
-  parser.on("-f FILE", "--file-name=FILE", "Sets output file name") { |file| file_name = file }
-  parser.on("-h", "--help", "Displays this message") { puts parser }
-end
-
-data = Pegasus::Language::LanguageData.from_json STDIN
-if stdout
-  data.output STDOUT, prefix
-else
-  file = File.open(file_name + ".cr", mode: "w")
-  data.output file, prefix
-  file.close
-end
+parser = PegasusOptionParser(CrystalContext, LanguageData).new LanguageInput.new
+ParserGenerator.new(parser)
+parser.run

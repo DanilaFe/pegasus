@@ -1,8 +1,8 @@
 
 /* == User Code == */
-<%= @semantics.init %>
+<%= input!.semantics.init %>
 
-<%= Pegasus::Generators::CTableGen.new(@language).to_s %>
+<%= Pegasus::Generators::CTableGen.new(input!.language).to_s %>
 
 <%= {{ read_file "src/generators/c-common/standard_source.c" }} %>
 
@@ -37,8 +37,8 @@ pgs_error pgs_do_parse(pgs_state* s, pgs_token_list* list, pgs_stack_value* into
             index++;
         } else {
             switch(action - 1) {
-                <%- @semantics.actions.each do |k, v| -%>
-                case <%= k %>: <%= format_item(k, v) %>
+                <%- input!.semantics.actions.each do |k, v| -%>
+                case <%= k %>: <%= input!.format_item(k, v) %>
                 <%- end -%>
                 default: break;
             }

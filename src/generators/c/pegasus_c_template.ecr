@@ -1,4 +1,4 @@
-<%= Pegasus::Generators::CTableGen.new(self).to_s %>
+<%= Pegasus::Generators::CTableGen.new(input!).to_s %>
 
 <%= {{ read_file "src/generators/c-common/standard_source.c" }} %>
 

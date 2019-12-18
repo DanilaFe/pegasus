@@ -1,7 +1,7 @@
 <%= {{ read_file "src/generators/c-common/standard_header.h" }} %>
 
 /* == Nonterminal ID Definitions == */
-<% @language.nonterminals.each do |name, value| -%>
+<% input!.language.nonterminals.each do |name, value| -%>
 #define PGS_NONTERMINAL_<%= name.underscore.upcase %> <%= value.raw_id %>
 <% end -%>
 
@@ -12,7 +12,7 @@
  * assigned to the nonterminals.
  */
 union pgs_stack_value_u {
-    <% @semantics.types.each do |k, v| %><%= v %> <%= k %>;<% end %>
+    <% input!.semantics.types.each do |k, v| %><%= v %> <%= k %>;<% end %>
 };
 
 <%= {{ read_file "src/generators/csem/sem_header.h" }} %>

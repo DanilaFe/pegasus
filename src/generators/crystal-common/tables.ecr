@@ -12,8 +12,7 @@ module <%= @prefix %>
     [ <% state.each do |transition| %> <%= transition %>_i64, <% end %> ],<%- end %>
   ]
   PARSE_FINAL_TABLE = [<% @language.parse_final_table.each do |skip| %>
-    <%= skip %>,
-  <% end -%>
+    <%= skip %>,<%- end %>
   ]
   ITEMS = <% if @language.items.size == 0 %> [] of Tuple(Int64, Int64) <% else %> [<% @language.items.each do |item| %>
     { <%= item.head.raw_id %>_i64, <%= item.body.size %>_i64 },<%- end %>

@@ -31,6 +31,7 @@ module Pegasus
         lex_final_table: { type: Array(Int64), setter: false },
         parse_state_table: { type: Array(Array(Int64)), setter: false },
         parse_action_table: { type: Array(Array(Int64)), setter: false },
+        parse_final_table: { type: Array(Bool), setter: false },
 
         terminals: { type: Hash(String, Pegasus::Elements::TerminalId), setter: false },
         nonterminals: { type: Hash(String, Pegasus::Elements::NonterminalId), setter: false },

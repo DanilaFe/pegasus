@@ -44,6 +44,9 @@ module Pegasus
       # Action table indexed by the state and the lookahead item.
       # Used to determine what the parser should do in each state.
       getter parse_action_table : Array(Array(Int64))
+      # The table that maps a nonterminal ID to recognize
+      # when parsing can stop.
+      getter parse_final_table : Array(Bool)
 
       # The terminals, and their original names / regular expressions.
       getter terminals : Hash(String, Pegasus::Elements::TerminalId)
@@ -61,7 +64,7 @@ module Pegasus
         @terminals, @nonterminals, grammar =
           generate_grammar(language_definition)
         @lex_skip_table, @lex_state_table, @lex_final_table,
-          @parse_state_table, @parse_action_table =
+          @parse_state_table, @parse_action_table, @parse_final_table =
           generate_tables(language_definition, @terminals, @nonterminals, grammar)
         @max_terminal = @terminals.values.max_of?(&.raw_id) || 0_i64
         @items = grammar.items
@@ -124,6 +127,7 @@ module Pegasus
           lalr_pda = grammar.create_lalr_pda(lr_pda)
           parse_state_table = lalr_pda.state_table
           parse_action_table = lalr_pda.action_table
+          parse_final_table = [false] + nonterminals.map &.[1].final?
         rescue e : Pegasus::Error::PegasusException
           if old_context = e.context_data
             .find(&.is_a?(Pegasus::Dfa::ConflictErrorContext))
@@ -139,7 +143,7 @@ module Pegasus
           raise e
         end
 
-        return { lex_skip_table, lex_state_table, lex_final_table, parse_state_table, parse_action_table }
+        return { lex_skip_table, lex_state_table, lex_final_table, parse_state_table, parse_action_table, parse_final_table }
       end
     end
 

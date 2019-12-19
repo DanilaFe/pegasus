@@ -17,6 +17,8 @@ _Warning: Pegasus is experimental. Its APIs are not yet solidified, and are subj
 * [C Output](#c-output)
 * [C Output With Semantic Actions](#c-output-with-semantic-actions)
 * [Crystal Output](#crystal-output)
+* [Crystal Output With Semantic Actions](#crystal-output-with-semantic-actions)
+* [JSON Format](#json-format)
 
 ## Architecture
 Pegasus is based on the UNIX philosophy of doing one thing, and doing it well.
@@ -357,7 +359,76 @@ Nonterminal: S
       Terminal: 3
 ```
 
-### JSON Format
+## Crystal Output with Semantic Actions
+This is just like C semantic actions, but with Crystal. Suppose you don't need
+a parse tree. Rather, you want to generate your own values from Pegasus grammar
+rules. You can do this with the `pegasus-crystalsem` parser generator. When
+using this generator, you specify an additional file, which associates Crystal
+code (_semantic actions_) with each rule. Let's consider a language
+of booleans:
+```
+token whitespace = /[ \n\t]+/ [ skip ];
+token true = /true/;
+token false = /false/;
+token and = /and/;
+token or = /or/;
+
+rule S = expr;
+rule expr = tkn | expr and tkn | expr or tkn;
+rule tkn = true | false;
+```
+Now that we have our grammar, it's time to formulate the additional file
+we mentioned. The first thing we need to do is figure out what Crystal
+type each of the nonterminals we generate. Our language is that
+of booleans, so we will be needing a boolean type:
+```
+type boolean = $$ Bool $$
+```
+Here, the stuff inside the `$$` is Crystal code that is pasted verbatim into the
+generated parser. Now, we want to specify which rules evaluate to that type.
+In our simple language, every rule evaluates to a boolean:
+```
+typerules boolean = [ S, expr, tkn ]
+```
+`pegasus-crystalsem` also allows you to put some code above the parsing code,
+globally. We don't use this, so we leave the `init` property blank:
+```
+init = $$ $$
+```
+It is now time to assign semantic Crystal actions to each grammar rule. We
+start with the first rule, `S(0)` (which means the first rule for the
+`S` nonterminal). Since the first rule just matches an `expr`, we
+simply output the value of that `expr`:
+```
+rule S(0) = $$ $out = $0 $$
+```
+This means "set the output to be the value of the first element in the rule's body".
+We now implement the actual rules for `expr`. The first rule simply forwards
+the result of the `tkn`, just like the rule for `S`. The other two rules actually
+implement the logical operations of `&` and `|`:
+```
+rule expr(0) = $$ $out = $0 $$
+rule expr(1) = $$ $out = $0 & $2 $$
+rule expr(2) = $$ $out = $0 | $2 $$
+```
+Finally, we use the two rules for `tkn` to actually return a boolean:
+```
+rule tkn(0) = $$ $out = true $$
+rule tkn(1) = $$ $out = false $$
+```
+Let's test this. We include the generated parser, and write the following:
+```Crystal
+require "./parser.cr"
+
+puts Pegasus::Generated.process(gets.not_nil!)
+```
+Let's now run this with the expression `true or false or true`. The output:
+```
+true
+```
+That's indeed our answer!
+
+## JSON Format
 For the grammar given by:
 ```
 token hi = /hi/;

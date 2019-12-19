@@ -1,3 +1,5 @@
+<%= input!.semantics.init %>
+
 <%= Pegasus::Generators::CrystalTableGen.new(context.output_module, input!.language).to_s %>
 
 module <%= context.output_module %>

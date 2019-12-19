@@ -17,6 +17,8 @@ targets:
     main: src/generators/csem/pegasus_csem.cr
   pegasus-crystal:
     main: src/generators/crystal/pegasus_crystal.cr
+  pegasus-crystalsem:
+    main: src/generators/crystalsem/pegasus_crystalsem.cr
 
 crystal: 0.32.0
 

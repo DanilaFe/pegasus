@@ -1,0 +1,88 @@
+<%= Pegasus::Generators::CrystalTableGen.new(context.output_module, input!.language).to_s %>
+
+module <%= context.output_module %>
+  extend self
+
+  alias StackType = <%= input!.semantics.types.values.join "|" %>
+
+  class Token
+    getter terminal_id : Int64
+    getter string : String
+
+    def initialize(@terminal_id, @string)
+    end
+  end
+
+  def lex(string)
+    index = 0
+    tokens = [] of Token
+    bytes = string.bytes
+
+    while index < bytes.size
+      start_index = index
+      last_match_index = -1
+      last_pattern = -1_i64
+      state = 1
+
+      while index < bytes.size
+        state = LEX_STATE_TABLE[state][bytes[index]]
+        id = LEX_FINAL_TABLE[state]
+
+        break if state == 0
+        index += 1
+        next if id == 0
+
+        last_match_index = index - 1
+        last_pattern = id
+      end
+
+      raise "Invalid character #{bytes[start_index].to_s.dump_unquoted} at position #{start_index}" if last_match_index == -1
+      next if LEX_SKIP_TABLE[last_pattern]
+      tokens << Token.new(last_pattern - 1, string[start_index..last_match_index])
+    end
+
+    return tokens
+  end
+
+  def parse(tokens)
+    temp = uninitialized StackType
+    value_stack = [ ] of StackType
+    state_stack = [ 1_i64 ]
+    index = 0
+
+    loop do
+      token = tokens[index]?
+      action = PARSE_ACTION_TABLE[state_stack.last][token.try(&.terminal_id.+(1)) || 0_i64]
+      raise "Invalid token #{token.try &.string.dump || "EOF"}" if action == -1
+
+      if action == 0
+        raise "Unexpected end of file" unless token
+        index += 1
+        value_stack << token
+        state_stack << PARSE_STATE_TABLE[state_stack.last][token.terminal_id + 1]
+      else
+        item = ITEMS[action - 1]
+
+        case action - 1
+        <%- input!.semantics.actions.each do |k, v| -%>
+        when <%= k %>
+          <%= input!.format_item(k, v) %>
+        <%- end -%>
+        end
+
+        value_stack.pop item[1]
+        state_stack.pop item[1]
+        value_stack << temp
+
+        break if PARSE_FINAL_TABLE[item[0]+1]
+        state_stack << PARSE_STATE_TABLE[state_stack.last][item[0] + 2 + MAX_TERMINAL]
+      end
+    end
+    raise "Invalid token #{tokens[index].string.dump}" if index < tokens.size
+    return value_stack.last
+  end
+
+  def process(string)
+    parse(lex(string))
+  end
+end

@@ -181,7 +181,7 @@ To learn how to use the generated code, lease take a look at the
 #### `pegasus-csem`
 Another C parser generator. The difference between this parser generator and `pegasus-c` is that it uses a separate semantic actions file to mimic the functionality of Yacc/Bison. This means you can specify C code that runs when each rule in the grammar is matched. To learn how to use this parser generator, see the [C Output With Semantic Actions](#c-output-with-semantic-actions) section.
 ```
-./bin/pegasus-csem -a test.json -b test.sem
+./bin/pegasus-csem -l test.json -a test.sem
 ```
 
 ## C Output

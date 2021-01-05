@@ -12,7 +12,7 @@ module Pegasus
 
       def to_s(io)
         io << "The IDs of the items involved are "
-        @item_ids.join(", ", io)
+        @item_ids.join(io, ", ")
       end
     end
 

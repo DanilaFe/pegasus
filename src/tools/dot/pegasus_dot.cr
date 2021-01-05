@@ -49,9 +49,9 @@ module Pegasus::Dot
   # Output target specified on command line.
   enum OutputTarget
     # Print DOT for DFA
-    Dfa,
-      # Print DOT for PDA
-      Pda
+    Dfa
+    # Print DOT for PDA
+    Pda
   end
 end
 
@@ -59,7 +59,7 @@ end
 output_target = Pegasus::Dot::OutputTarget::Pda
 
 # Parse configuration from command line
-OptionParser.parse! do |parser|
+OptionParser.parse do |parser|
   parser.banner = "Usage: pegasus-dot [arguments]"
   parser.on("-o FORMAT", "--output FORMAT",
             "Specifies the output format of the DOT converter. Either \"Dfa\" or \"Pda\"") do |format|

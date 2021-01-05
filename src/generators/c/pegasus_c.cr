@@ -15,7 +15,7 @@ module Pegasus::Generators::C
   end
 
   class LanguageInput < StdInput(LanguageData)
-    def process(opt_parser)
+    def process(opt_parser) : LanguageData
       LanguageData.from_json STDIN
     end
   end

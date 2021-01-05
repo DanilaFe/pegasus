@@ -2,42 +2,40 @@ require "json"
 
 module Pegasus
   class Elements::TerminalId
-    JSON.mapping(
-      id: { type: Int64, key: "terminal_id", setter: false, getter: false }
-    )
+    include JSON::Serializable
+    @[JSON::Field(key: "terminal_id")]
+    @id : Int64
   end
 
   class Elements::NonterminalId
-    JSON.mapping(
-      id: { type: Int64, key: "nonterminal_id", setter: false, getter: false },
-      start: { type: Bool, setter: false, getter: false }
-    )
+    include JSON::Serializable
+    @[JSON::Field(key: "nonterminal_id")]
+    @id : Int64
+    @start : Bool
   end
 
   module Pda
     class Item
-      JSON.mapping(
-        head: { type: Elements::NonterminalId, setter: false },
-        body: { type: Array(Elements::TerminalId | Elements::NonterminalId), setter: false }
-      )
+      include JSON::Serializable
+      getter head : Elements::NonterminalId
+      getter body : Array(Elements::TerminalId | Elements::NonterminalId)
     end
   end
 
   module Language
     class LanguageData
-      JSON.mapping(
-        lex_skip_table: { type: Array(Bool), setter: false },
-        lex_state_table: { type: Array(Array(Int64)), setter: false },
-        lex_final_table: { type: Array(Int64), setter: false },
-        parse_state_table: { type: Array(Array(Int64)), setter: false },
-        parse_action_table: { type: Array(Array(Int64)), setter: false },
-        parse_final_table: { type: Array(Bool), setter: false },
+      include JSON::Serializable
+      getter lex_skip_table : Array(Bool)
+      getter lex_state_table : Array(Array(Int64))
+      getter lex_final_table : Array(Int64)
+      getter parse_state_table : Array(Array(Int64))
+      getter parse_action_table : Array(Array(Int64))
+      getter parse_final_table : Array(Bool)
 
-        terminals: { type: Hash(String, Pegasus::Elements::TerminalId), setter: false },
-        nonterminals: { type: Hash(String, Pegasus::Elements::NonterminalId), setter: false },
-        items: { type: Array(Pegasus::Pda::Item), setter: false },
-        max_terminal: { type: Int64, setter: false }
-      )
+      getter terminals : Hash(String, Pegasus::Elements::TerminalId)
+      getter nonterminals : Hash(String, Pegasus::Elements::NonterminalId)
+      getter items : Array(Pegasus::Pda::Item)
+      getter max_terminal : Int64
     end
   end
 end

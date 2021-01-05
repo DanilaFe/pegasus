@@ -26,7 +26,7 @@ module Pegasus::Sim
     def initialize(@token : Token)
     end
 
-    def table_index
+    def table_index : Int64
       @token.id
     end
 
@@ -43,7 +43,7 @@ module Pegasus::Sim
     def initialize(@nonterminal_id : Int64, @max_terminal : Int64, @children = [] of Tree, @name : String? = nil)
     end
 
-    def table_index
+    def table_index : Int64
       @max_terminal + 1 + 1 + @nonterminal_id
     end
 
@@ -58,7 +58,7 @@ end
 
 input_json_option = nil
 
-OptionParser.parse! do |parser|
+OptionParser.parse do |parser|
   parser.banner = "Usage: pegasus-sim [arguments]"
   parser.on("-i FILE", "--input FORMAT", "Specifies input JSON file") do |file|
     input_json_option = file

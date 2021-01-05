@@ -53,7 +53,7 @@ module Pegasus::Generators::CSem
       super "language", "the grammar file"
     end
 
-    def process(opt_parser, file)
+    def process(opt_parser, file) : LanguageData
       LanguageData.from_json file
     end
   end
@@ -63,7 +63,7 @@ module Pegasus::Generators::CSem
       super "actions", "the semantic actions file"
     end
 
-    def process(opt_parser, file)
+    def process(opt_parser, file) : GeneratorInput
       language_data = @language_input.process(opt_parser)
       semantics_data = SemanticsData.new file.gets_to_end, "pgs_token*", language_data
       GeneratorInput.new(language_data,semantics_data)

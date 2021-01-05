@@ -24,9 +24,9 @@ module Pegasus::Generators::Crystal
     end
   end
 
-  class LanguageInput < StdInput(Pegasus::Language::LanguageData)
-    def process(opt_parser)
-      Pegasus::Language::LanguageData.from_json STDIN
+  class LanguageInput < StdInput(LanguageData)
+    def process(opt_parser) : LanguageData
+      LanguageData.from_json STDIN
     end
   end
 

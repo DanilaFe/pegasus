@@ -23,7 +23,7 @@ module Pegasus
 
       def to_s(io)
         io << "The nonterminals involved are: "
-        @nonterminals.join(", ", io)
+        @nonterminals.join(io, ", ")
       end
     end
 

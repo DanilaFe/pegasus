@@ -1,4 +1,4 @@
-token whitespace = /[ \t\n]+/ [ skip ];
+token whitespace = /([ \t]|\r?\n)+/ [ skip ];
 token identifier = /[a-zA-Z_\-]+/;
 token integer = /[0-9]+/;
 token code = /$$([^$]|$[^$])*$$/;

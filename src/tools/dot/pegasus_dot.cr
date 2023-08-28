@@ -37,7 +37,7 @@ module Pegasus::Dot
           elsif cause - 1 <= data.max_terminal
             transition_label = data.terminals.find { |k, v| v.raw_id == cause - 1 }.not_nil![0].dump
           else
-            transition_label = data.nonterminals.find { |k, v| v.raw_id == cause - 1 }.not_nil![0].dump
+            transition_label = data.nonterminals.find { |k, v| v.raw_id == cause - 1 - (data.max_terminal + 1) }.not_nil![0].dump
           end
           io << "  #{state_name} -> #{other_state_name} [label=#{transition_label}]\n"
         end

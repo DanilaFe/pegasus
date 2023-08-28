@@ -76,37 +76,6 @@ describe Pegasus::Language::LanguageDefinition do
       language.rules["S"]?.should eq [ rule(rule_alternative("h")) ]
     end
 
-    it "Correctly handles whitespace between the token / rule keyword and the identifier" do
-      language = Pegasus::Language::LanguageDefinition.new %(token   \n  t   \n  = /t/;rule   \n  S  \n   = t;)
-      language.tokens.size.should eq 1
-      language.tokens["t"]?.should eq Pegasus::Language::Token.new("t")
-      language.rules.size.should eq 1
-      language.rules["S"]?.should eq [ rule(rule_alternative("t")) ]
-    end
-
-    it "Correctly handles whitespace around the equals sign" do
-      language = Pegasus::Language::LanguageDefinition.new %(token t   \n =    /t/;rule S   \n =    \nt;)
-      language.tokens.size.should eq 1
-      language.tokens["t"]?.should eq Pegasus::Language::Token.new("t")
-      language.rules.size.should eq 1
-      language.rules["S"]?.should eq [ rule(rule_alternative("t")) ]
-    end
-
-    it "Correctly handles whitespace around the semicolon" do
-      language = Pegasus::Language::LanguageDefinition.new %(token t = /t/   \n  ;   \n   rule S = t  \n  ;    \n)
-      language.tokens.size.should eq 1
-      language.tokens["t"]?.should eq Pegasus::Language::Token.new("t")
-      language.rules.size.should eq 1
-      language.rules["S"]?.should eq [ rule(rule_alternative("t")) ]
-    end
-
-    it "Correctly handles whitespace between rule identifiers" do
-      language = Pegasus::Language::LanguageDefinition.new %(rule S = hello   \n  goodbye   \n  |   \n   world;)
-      language.tokens.size.should eq 0
-      language.rules.size.should eq 1
-      language.rules["S"]?.should eq [ rule(rule_alternative("hello", "goodbye"), rule_alternative("world")) ]
-    end
-
     it "Correctly parses a single token declaration" do
       language = Pegasus::Language::LanguageDefinition.new %(token hello = /hello/;)
       language.tokens.size.should eq 1
@@ -128,12 +97,47 @@ describe Pegasus::Language::LanguageDefinition do
       language.rules["S"]?.should eq [ rule(rule_alternative("s"), rule_alternative("e")) ]
     end
 
-    it "Correctly parses two rules with one body each" do
-      language = Pegasus::Language::LanguageDefinition.new %(rule S = h;\nrule expr = e;)
-      language.tokens.size.should eq 0
-      language.rules.size.should eq 2
-      language.rules["S"]?.should eq [ rule(rule_alternative("h")) ]
-      language.rules["expr"]?.should eq [ rule(rule_alternative("e")) ]
+    # The following tests are run with both types of newlines (UNIX and DOS)
+    # to make sure we still work on Windows.
+    ["\n", "\r\n"].each do |nl|
+      it "Correctly handles whitespace between the token / rule keyword and the identifier" do
+        language = Pegasus::Language::LanguageDefinition.new %Q(token   #{nl}  t   #{nl}  = /t/;rule   #{nl}  S  #{nl}   = t;)
+        language.tokens.size.should eq 1
+        language.tokens["t"]?.should eq Pegasus::Language::Token.new("t")
+        language.rules.size.should eq 1
+        language.rules["S"]?.should eq [ rule(rule_alternative("t")) ]
+      end
+
+      it "Correctly handles whitespace around the equals sign" do
+        language = Pegasus::Language::LanguageDefinition.new %Q(token t   #{nl} =    /t/;rule S   #{nl} =    #{nl}t;)
+        language.tokens.size.should eq 1
+        language.tokens["t"]?.should eq Pegasus::Language::Token.new("t")
+        language.rules.size.should eq 1
+        language.rules["S"]?.should eq [ rule(rule_alternative("t")) ]
+      end
+
+      it "Correctly handles whitespace around the semicolon" do
+        language = Pegasus::Language::LanguageDefinition.new %Q(token t = /t/   #{nl}  ;   #{nl}   rule S = t  #{nl}  ;    #{nl})
+        language.tokens.size.should eq 1
+        language.tokens["t"]?.should eq Pegasus::Language::Token.new("t")
+        language.rules.size.should eq 1
+        language.rules["S"]?.should eq [ rule(rule_alternative("t")) ]
+      end
+
+      it "Correctly handles whitespace between rule identifiers" do
+        language = Pegasus::Language::LanguageDefinition.new %Q(rule S = hello   #{nl}  goodbye   #{nl}  |   #{nl}   world;)
+        language.tokens.size.should eq 0
+        language.rules.size.should eq 1
+        language.rules["S"]?.should eq [ rule(rule_alternative("hello", "goodbye"), rule_alternative("world")) ]
+      end
+
+      it "Correctly parses two rules with one body each" do
+        language = Pegasus::Language::LanguageDefinition.new %Q(rule S = h;#{nl}rule expr = e;)
+        language.tokens.size.should eq 0
+        language.rules.size.should eq 2
+        language.rules["S"]?.should eq [ rule(rule_alternative("h")) ]
+        language.rules["expr"]?.should eq [ rule(rule_alternative("e")) ]
+      end
     end
   end
 end

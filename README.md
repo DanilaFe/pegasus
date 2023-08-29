@@ -129,7 +129,7 @@ This program reads grammars from standard input, and generates
 JSON descriptions out LALR automata,
 which will be read by the other programs. For example:
 ```Bash
-echo 'token hello = "Hello, world!"; rule S = hello;' > test.grammar
+echo 'token hello = /Hello, world!/; rule S = hello;' > test.grammar
 ./bin/pegasus < test.grammar
 ```
 This prints the JSON to the command line. If you'd like to output

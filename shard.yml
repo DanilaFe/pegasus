@@ -20,6 +20,6 @@ targets:
   pegasus-crystalsem:
     main: src/generators/crystalsem/pegasus_crystalsem.cr
 
-crystal: 1.1.1
+crystal: 1.14.0
 
 license: MIT

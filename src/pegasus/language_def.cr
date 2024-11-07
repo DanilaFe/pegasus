@@ -17,7 +17,7 @@ module Pegasus
     # An error context which reports the items involved in some kind of conflict
     # (shift / reduce or reduce / reduce). This version, unlike `ConflictErrorContext`,
     # reports the relevant items' names.
-    class NamedConflictErrorContext < Pegasus::Error::ErrorContext
+    class NamedConflictErrorContext < Error::ErrorContext
       def initialize(@nonterminals : Array(String))
       end
 
@@ -33,7 +33,7 @@ module Pegasus
       # Table for tokens that should be skipped.
       getter lex_skip_table : Array(Bool)
       # The state table for the lexer, which is used for transitions
-      # of the `Pegasus::Nfa::Nfa` during tokenizing.
+      # of the `Nfa::Nfa` during tokenizing.
       getter lex_state_table : Array(Array(Int64))
       # The table that maps a state ID to a token ID, used to
       # recognize that a match has occured.
@@ -49,12 +49,12 @@ module Pegasus
       getter parse_final_table : Array(Bool)
 
       # The terminals, and their original names / regular expressions.
-      getter terminals : Hash(String, Pegasus::Elements::TerminalId)
+      getter terminals : Hash(String, Elements::TerminalId)
       # The nonterminals, and their original names.
-      getter nonterminals : Hash(String, Pegasus::Elements::NonterminalId)
+      getter nonterminals : Hash(String, Elements::NonterminalId)
       # The items in the language. Used for reducing / building up
       # trees once a reduce action is performed.
-      getter items : Array(Pegasus::Pda::Item)
+      getter items : Array(Pda::Item)
       # The highest terminal ID, used for correctly accessing the
       # tables indexed by both terminal and nonterminal IDs.
       getter max_terminal : Int64
@@ -85,13 +85,13 @@ module Pegasus
       # the terminals and nonterminals.
       private def generate_grammar(language_def)
         token_ids = assign_ids(language_def.tokens.keys) do |i|
-          Pegasus::Elements::TerminalId.new i
+          Elements::TerminalId.new i
         end
         rule_ids = assign_ids(language_def.rules.keys) do |i|
-          Pegasus::Elements::NonterminalId.new i, start: i == 0
+          Elements::NonterminalId.new i, start: i == 0
         end
 
-        grammar = Pegasus::Pda::Grammar.new token_ids.values, rule_ids.values
+        grammar = Pda::Grammar.new token_ids.values, rule_ids.values
         language_def.rules.each do |name, bodies|
           head = rule_ids[name]
           bodies.each &.alternatives.each do |body|
@@ -100,7 +100,7 @@ module Pegasus
               raise_grammar "No terminal or rule named #{element_name}" unless element
               next element
             end
-            item = Pegasus::Pda::Item.new head, body
+            item = Pda::Item.new head, body
             grammar.add_item item
           end
         end
@@ -111,7 +111,7 @@ module Pegasus
       # Generates lookup tables using the given terminals, nonterminals,
       # and grammar.
       private def generate_tables(language_def, terminals, nonterminals, grammar)
-        nfa = Pegasus::Nfa::Nfa.new
+        nfa = Nfa::Nfa.new
         terminals.each do |terminal, value|
           nfa.add_regex language_def.tokens[terminal].regex, value.raw_id
         end
@@ -128,10 +128,10 @@ module Pegasus
           parse_state_table = lalr_pda.state_table
           parse_action_table = lalr_pda.action_table
           parse_final_table = [false] + nonterminals.map &.[1].start?
-        rescue e : Pegasus::Error::PegasusException
+        rescue e : Error::PegasusException
           if old_context = e.context_data
-            .find(&.is_a?(Pegasus::Dfa::ConflictErrorContext))
-            .as?(Pegasus::Dfa::ConflictErrorContext)
+            .find(&.is_a?(Dfa::ConflictErrorContext))
+            .as?(Dfa::ConflictErrorContext)
 
             names = old_context.item_ids.map do |id|
               head = grammar.items[id].head
@@ -147,12 +147,12 @@ module Pegasus
       end
     end
 
-    class Pegasus::Generated::Tree
-      alias SelfDeque = Deque(Pegasus::Generated::Tree)
+    class ::Pegasus::Generated::Tree
+      alias SelfDeque = Deque(Generated::Tree)
 
       # Recursive call for the `#flatten` function.
       protected def flatten_recursive(*, value_index : Int32, recursive_name : String, recursive_index : Int32) : SelfDeque
-        if flattened = self.as?(Pegasus::Generated::NonterminalTree)
+        if flattened = self.as?(Generated::NonterminalTree)
           recursive_child = flattened.children[recursive_index]?
           value_child = flattened.children[value_index]?
 
@@ -182,7 +182,7 @@ module Pegasus
     end
 
     alias Option = String
-    
+
     # Since Pegasus supports options on tokens and rules,
     # we need to represent an object to which options can be attached.
     # this is this type of object.
@@ -293,7 +293,7 @@ module Pegasus
       end
     end
 
-    # One of the alternatives of a rule. 
+    # One of the alternatives of a rule.
     class RuleAlternative
       # The elements of the rule.
       getter elements : Array(RuleElement)
@@ -415,35 +415,35 @@ module Pegasus
 
       # Creates a list of options from a "statemend end" parse tree node.
       private def extract_options(statement_end_tree)
-        statement_end_tree = statement_end_tree.as(Pegasus::Generated::NonterminalTree)
+        statement_end_tree = statement_end_tree.as(Generated::NonterminalTree)
         return [] of Option unless statement_end_tree.children.size > 1
-        options_tree = statement_end_tree.children[0].as(Pegasus::Generated::NonterminalTree)
+        options_tree = statement_end_tree.children[0].as(Generated::NonterminalTree)
         options = options_tree.children[1]
           .flatten(value_index: 0, recursive_name: "option_list", recursive_index: 2)
-          .map(&.as(Pegasus::Generated::NonterminalTree).children[0])
-          .map(&.as(Pegasus::Generated::TerminalTree).string)
+          .map(&.as(Generated::NonterminalTree).children[0])
+          .map(&.as(Generated::TerminalTree).string)
       end
 
       # Extracts all the tokens from the token list parse tree node, storing them
       # in a member variable hash.
       private def extract_tokens(token_list_tree)
         token_list_tree.flatten(value_index: 0, recursive_name: "token_list", recursive_index: 1)
-          .map { |it| ntt = it.as(Pegasus::Generated::NonterminalTree); { ntt.children[1], ntt.children[3], ntt.children[4] } }
+          .map { |it| ntt = it.as(Generated::NonterminalTree); { ntt.children[1], ntt.children[3], ntt.children[4] } }
           .map do |data|
             name_tree, regex_tree, statement_end = data
             name = name_tree
-              .as(Pegasus::Generated::TerminalTree).string
+              .as(Generated::TerminalTree).string
             raise_grammar "Declaring a token (#{name}) a second time" if @tokens.has_key? name
             regex = regex_tree
-              .as(Pegasus::Generated::TerminalTree).string[1..-2]
+              .as(Generated::TerminalTree).string[1..-2]
             @tokens[name] = Token.new regex, extract_options(statement_end)
           end
       end
 
       private def extract_rule_element(grammar_element_tree)
-        grammar_element_tree = grammar_element_tree.as(Pegasus::Generated::NonterminalTree)
-        name = grammar_element_tree.children[0].as(Pegasus::Generated::TerminalTree).string
-        setting = grammar_element_tree.children[1]?.try { |it| it.as(Pegasus::Generated::TerminalTree).string }
+        grammar_element_tree = grammar_element_tree.as(Generated::NonterminalTree)
+        name = grammar_element_tree.children[0].as(Generated::TerminalTree).string
+        setting = grammar_element_tree.children[1]?.try { |it| it.as(Generated::TerminalTree).string }
         return case setting
                when "?"
                  OptionalElement.new name
@@ -467,11 +467,11 @@ module Pegasus
       # in a member variable hash.
       private def extract_rules(grammar_list_tree)
         grammar_list_tree.flatten(value_index: 0, recursive_name: "grammar_list", recursive_index: 1)
-          .map { |it| ntt = it.as(Pegasus::Generated::NonterminalTree); { ntt.children[1], ntt.children[3], ntt.children[4] } }
+          .map { |it| ntt = it.as(Generated::NonterminalTree); { ntt.children[1], ntt.children[3], ntt.children[4] } }
           .map do |data|
             name_tree, bodies_tree, statement_end = data
             name = name_tree
-              .as(Pegasus::Generated::TerminalTree).string
+              .as(Generated::TerminalTree).string
             raise_grammar "Declaring a rule (#{name}) with the same name as a token" if @tokens.has_key? name
             bodies = extract_bodies(bodies_tree)
 
@@ -484,14 +484,14 @@ module Pegasus
 
       # Creates a language definition from a string.
       private def from_string(string)
-        tree = Pegasus::Generated.process(string).as(Pegasus::Generated::NonterminalTree)
-        if tokens = tree.children.find &.as(Pegasus::Generated::NonterminalTree).name.==("token_list")
+        tree = ::Pegasus::Generated.process(string).as(::Pegasus::Generated::NonterminalTree)
+        if tokens = tree.children.find &.as(::Pegasus::Generated::NonterminalTree).name.==("token_list")
           extract_tokens(tokens)
         end
-        if rules = tree.children.find &.as(Pegasus::Generated::NonterminalTree).name.==("grammar_list")
+        if rules = tree.children.find &.as(::Pegasus::Generated::NonterminalTree).name.==("grammar_list")
           extract_rules(rules)
         end
-      rescue e : Pegasus::Error::PegasusException
+      rescue e : Error::PegasusException
         raise e
       rescue e : Exception
         raise_grammar e.message.not_nil!

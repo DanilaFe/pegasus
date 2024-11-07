@@ -32,9 +32,9 @@ module Pegasus
       getter parse_action_table : Array(Array(Int64))
       getter parse_final_table : Array(Bool)
 
-      getter terminals : Hash(String, Pegasus::Elements::TerminalId)
-      getter nonterminals : Hash(String, Pegasus::Elements::NonterminalId)
-      getter items : Array(Pegasus::Pda::Item)
+      getter terminals : Hash(String, Elements::TerminalId)
+      getter nonterminals : Hash(String, Elements::NonterminalId)
+      getter items : Array(Pda::Item)
       getter max_terminal : Int64
     end
   end
